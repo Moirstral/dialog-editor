@@ -18,5 +18,5 @@ export default defineConfig({
     tailwindcss(),
     visualizer({ open: true }),
   ],
-  base: "./", // 设置相对路径
+  base: "/dialog-editor/",
 });
