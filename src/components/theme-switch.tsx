@@ -31,6 +31,26 @@ export const ThemeSwitch: FC<ThemeSwitchProps> = ({
     onChange: () => setTheme(theme === "light" ? "dark" : "light"),
   });
 
+  // 动态更新 theme-color meta 标签
+  useEffect(() => {
+    if (!isMounted) return;
+
+    // 更新或创建 theme-color meta 标签
+    let metaThemeColor = document.querySelector('meta[name="theme-color"]');
+
+    if (!metaThemeColor) {
+      metaThemeColor = document.createElement("meta");
+      metaThemeColor.setAttribute("name", "theme-color");
+      document.head.appendChild(metaThemeColor);
+    }
+
+    // 根据当前主题设置颜色
+    metaThemeColor.setAttribute(
+      "content",
+      theme === "dark" ? "#17171A" : "#FAFAFA",
+    );
+  }, [theme, isMounted]);
+
   useEffect(() => {
     setIsMounted(true);
   }, [isMounted]);
