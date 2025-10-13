@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+@utility gutter-auto {
+  scrollbar-gutter: auto;
+}
+
+@utility gutter-stable {
+  scrollbar-gutter: stable;
+}
+
+@utility gutter-both {
+  scrollbar-gutter: stable both-edges;
+}
+
+:root {
+  @apply scrollbar scrollbar-thumb-rounded-full scrollbar-h-2 scrollbar-w-2 scrollbar-thumb-zinc-400;
+}
+
+@plugin 'tailwind-scrollbar' {
+  nocompatible: true;
+  preferredStrategy: 'pseudoelements';
+}
+
+@config "../../tailwind.config.js"
