@@ -303,10 +303,10 @@ export const DialogSequences = ({ ...props }: ListboxWrapperProps) => {
 
             if (!find) return;
             // 目前只有从数据库加载才会有fromDB, 如果不是就代表是从文件加载的，不需要重复加载
-            if (find.dialogSequence && !find.dialogSequence.fromDB) return;
-
-            await loadDialogData(key as string, find.handle);
-            navigate(`/editor/${key}`);
+            if (!find.dialogSequence || find.dialogSequence.fromDB) {
+              await loadDialogData(key as string, find.handle);
+            }
+            navigate(`/${key}`);
           }}
         >
           {(item) => (
