@@ -82,8 +82,8 @@
 </head>
 <body>
 <script>
-  // 跳转首页
-  window.location.href = '/dialog-editor/';
+  // 重定向到404路由页面
+  window.location.href = '/dialog-editor/404/' + encodeURIComponent(window.location.pathname) + window.location.search;
 </script>
 <div class="error-code">404</div>
 

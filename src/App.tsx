@@ -9,6 +9,7 @@ function App() {
     <Routes>
       <Route element={<IndexPage />} path="/" />
       <Route element={<EditorPage />} path="/:id" />
+      <Route element={<NotFoundPage />} path="404/:url" />
       <Route element={<NotFoundPage />} path="*" />
     </Routes>
   );
