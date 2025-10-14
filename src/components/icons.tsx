@@ -380,6 +380,31 @@ export const RefreshIcon = ({
   </svg>
 );
 
+export const ExportIcon = ({
+  size = 24,
+  width,
+  height,
+  ...props
+}: IconSvgProps) => (
+  <svg
+    focusable="false"
+    height={size || height}
+    role="presentation"
+    viewBox="0 0 24 24"
+    width={size || width}
+    {...props}
+  >
+    <path
+      d="m3,5v6h2v-6h14v14h-6v2h6c1.1,0,2-.9,2-2V5c0-1.1-.9-2-2-2H5c-1.1,0-2,.9-2,2Z"
+      fill="currentColor"
+    />
+    <path
+      d="M6.71 18.71 14 11.41 14 16 16 16 16 8 8 8 8 10 12.59 10 5.29 17.29 6.71 18.71z"
+      fill="currentColor"
+    />
+  </svg>
+);
+
 export const SearchIcon = (props: IconSvgProps) => (
   <svg
     aria-hidden="true"

@@ -10,6 +10,7 @@ import {
 import { siteConfig } from "@/config/site";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { GithubIcon, HeartFilledIcon } from "@/components/icons.tsx";
+import { Tabs } from "@/components/tabs.tsx";
 
 export const Navbar = () => {
   return (
@@ -51,6 +52,8 @@ export const Navbar = () => {
         >
           <HeartFilledIcon className="hidden md:flex text-red-400 cursor-pointer hover:animate-heart-beat" />
         </Tooltip>
+
+        <Tabs />
       </NavbarContent>
     </HeroUINavbar>
   );

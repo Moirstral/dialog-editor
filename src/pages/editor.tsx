@@ -14,7 +14,7 @@ import {
   Tabs,
   Textarea,
 } from "@heroui/react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 import { DialogEntryCard } from "@/components/dialog-entry.tsx";
 import { DialogSequence } from "@/components/dialog-sequences.tsx";
@@ -24,31 +24,39 @@ import { FormSwitch } from "@/components/form-switch.tsx";
 import { useDialogStore, useSessionStore } from "@/components/store.tsx";
 
 export default function EditorPage() {
-  const navigate = useNavigate();
+  const session = useSessionStore();
   const { id } = useParams<{ id: string }>();
-  let dialogsFolder = useSessionStore((state) => state.dialogsFolder);
   const dialogStore = useDialogStore();
-
-  // 如果ID不存在，跳转到主页
-  useEffect(() => {
-    if (!id || !dialogsFolder) {
-      navigate("/");
-    }
-  }, [id, dialogsFolder, navigate]);
-
-  const [dialogSequence, setDialogSequence] = useState<DialogSequence>({
+  const defaultDialogSequence = {
     id: id || "",
     start: "start",
-    entries: [],
-  });
+    entries: [
+      {
+        id: "start",
+        text: { translate: `dialog.${id}.entry.start.text` },
+      },
+    ],
+  };
+
+  const [dialogSequence, setDialogSequence] = useState<DialogSequence>(
+    defaultDialogSequence,
+  );
 
   useEffect(() => {
-    logger.info("Dialog Sequence:", id);
+    logger.info("Dialog Sequence:", id, session.loaded);
     id &&
+      session.loaded &&
       dialogStore.getDialogSequence(id).then((dialogSequence) => {
-        setDialogSequence(dialogSequence);
+        logger.info("Dialog Sequence:", dialogSequence);
+        if (dialogSequence) {
+          setDialogSequence(dialogSequence);
+        } else {
+          session.openTab({ type: "new", key: id }).then(() => {
+            setDialogSequence(defaultDialogSequence);
+          });
+        }
       });
-  }, [id, dialogStore]);
+  }, [id, dialogStore, session.loaded]);
 
   const data = useMemo(
     () => ({
@@ -145,7 +153,10 @@ export default function EditorPage() {
   };
 
   return (
-    <div className={"w-full h-full overflow-hidden"}>
+    <div
+      key={`title-${dialogSequence.id}`}
+      className={"w-full h-full overflow-hidden"}
+    >
       <Tabs
         aria-label="Options"
         classNames={{

@@ -1,5 +1,4 @@
 import {
-  Button,
   Listbox,
   ListboxItem,
   Popover,
@@ -15,7 +14,6 @@ import {
   CopyIcon,
   DotsVerticalIcon,
   EditIcon,
-  PlusIcon,
   RefreshIcon,
   TrashIcon,
 } from "@/components/icons.tsx";
@@ -154,7 +152,7 @@ export interface DialogEntry {
   // 对话文本内容，可以是字符串或文本组件JSON对象
   text: Component[] | Component | string;
   // 说话者名称，可以是字符串或文本组件JSON对象
-  speaker: Component;
+  speaker?: Component;
   // 立绘信息列表
   portraits?: Portrait[];
   // 下一条对话的ID，如果为空则按顺序显示下一条
@@ -291,110 +289,99 @@ export const DialogSequences = ({ ...props }: ListboxWrapperProps) => {
   };
 
   return (
-    <ScrollShadow {...props}>
-      <ListboxWrapper className="w-full max-w-[260px] max-h-4/5 py-2 text-inherit">
-        <Listbox
-          emptyContent={
-            <div className={"text-center select-none"}>--- 空 ---</div>
-          }
-          items={items}
-          label="Dialog Sequence List"
-          onAction={async (key) => {
-            let find = items.find((e) => e.id === key);
-
-            if (!find) return;
-            // 目前只有从数据库加载才会有fromDB, 如果不是就代表是从文件加载的，不需要重复加载
-            if (!find.dialogSequence || find.dialogSequence.fromDB) {
-              await loadDialogData(key as string, find.handle);
+    <>
+      <ScrollShadow {...props}>
+        <ListboxWrapper className="w-full max-h-full text-inherit">
+          <Listbox
+            emptyContent={
+              <div className={"text-center select-none"}>--- 空 ---</div>
             }
-            await session.openTab({ type: "permanent", key: key as string });
-            navigate(`/${key}`);
-          }}
-        >
-          {(item) => (
-            <ListboxItem
-              key={item.id}
-              className="group"
-              description={
-                item.dialogSequence?.title ||
-                item.dialogSequence?.description ||
-                " "
+            items={items}
+            label="Dialog Sequence List"
+            onAction={async (key) => {
+              let find = items.find((e) => e.id === key);
+
+              if (!find) return;
+              // 目前只有从数据库加载才会有fromDB, 如果不是就代表是从文件加载的，不需要重复加载
+              if (!find.dialogSequence || find.dialogSequence.fromDB) {
+                await loadDialogData(key as string, find.handle);
               }
-              endContent={
-                <Popover placement="right">
-                  <PopoverTrigger>
-                    <DotsVerticalIcon className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </PopoverTrigger>
-                  <PopoverContent>
-                    <Listbox
-                      aria-label="Actions"
-                      onAction={async (key) => {
-                        logger.info("Action:", key, item.id);
-                        switch (key) {
-                          case "reload":
-                            await loadDialogData(item.id, item.handle);
-                            break;
-                          case "edit":
-                            break;
-                          case "copy":
-                            break;
-                          default:
-                            break;
-                        }
-                      }}
-                    >
-                      <ListboxItem
-                        key="reload"
-                        startContent={<RefreshIcon size={18} />}
+              await session.openTab({ type: "permanent", key: key as string });
+              navigate(`/${key}`);
+            }}
+          >
+            {(item) => (
+              <ListboxItem
+                key={item.id}
+                className="group"
+                description={
+                  item.dialogSequence?.title ||
+                  item.dialogSequence?.description ||
+                  " "
+                }
+                endContent={
+                  <Popover placement="right">
+                    <PopoverTrigger>
+                      <DotsVerticalIcon className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </PopoverTrigger>
+                    <PopoverContent>
+                      <Listbox
+                        aria-label="Actions"
+                        onAction={async (key) => {
+                          logger.info("Action:", key, item.id);
+                          switch (key) {
+                            case "reload":
+                              await loadDialogData(item.id, item.handle);
+                              break;
+                            case "edit":
+                              break;
+                            case "copy":
+                              break;
+                            default:
+                              break;
+                          }
+                        }}
                       >
-                        重载文件
-                      </ListboxItem>
-                      <ListboxItem
-                        key="edit"
-                        startContent={<EditIcon size={18} />}
-                      >
-                        编辑对话
-                      </ListboxItem>
-                      <ListboxItem
-                        key="copy"
-                        showDivider
-                        startContent={<CopyIcon size={18} />}
-                      >
-                        复制为新文件
-                      </ListboxItem>
-                      {/*<ListboxItem showDivider />*/}
-                      <ListboxItem
-                        key="delete"
-                        className={"text-danger"}
-                        color={"danger"}
-                        startContent={<TrashIcon size={18} />}
-                      >
-                        删除文件
-                      </ListboxItem>
-                    </Listbox>
-                  </PopoverContent>
-                </Popover>
-              }
-              startContent={<CodeFileIcon size={40} />}
-            >
-              {item.handle.name}
-            </ListboxItem>
-          )}
-        </Listbox>
-      </ListboxWrapper>
-      {useSessionStore((state) => state.dialogsFolder) && (
-        <Button
-          className="w-full text-inherit"
-          size="lg"
-          variant="light"
-          onPress={() => {
-            alert("TODO");
-          }}
-        >
-          <PlusIcon size={18} />
-          新建对话序列
-        </Button>
-      )}
-    </ScrollShadow>
+                        <ListboxItem
+                          key="reload"
+                          startContent={<RefreshIcon size={18} />}
+                        >
+                          重载文件
+                        </ListboxItem>
+                        <ListboxItem
+                          key="edit"
+                          startContent={<EditIcon size={18} />}
+                        >
+                          编辑对话
+                        </ListboxItem>
+                        <ListboxItem
+                          key="copy"
+                          showDivider
+                          startContent={<CopyIcon size={18} />}
+                        >
+                          复制为新文件
+                        </ListboxItem>
+                        {/*<ListboxItem showDivider />*/}
+                        <ListboxItem
+                          key="delete"
+                          className={"text-danger"}
+                          color={"danger"}
+                          startContent={<TrashIcon size={18} />}
+                        >
+                          删除文件
+                        </ListboxItem>
+                      </Listbox>
+                    </PopoverContent>
+                  </Popover>
+                }
+                startContent={<CodeFileIcon size={40} />}
+              >
+                {item.handle.name}
+              </ListboxItem>
+            )}
+          </Listbox>
+        </ListboxWrapper>
+      </ScrollShadow>
+    </>
   );
 };

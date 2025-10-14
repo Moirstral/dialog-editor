@@ -18,7 +18,7 @@ import { useSessionStore } from "@/components/store.tsx";
 
 export interface TabItem {
   key: string;
-  type: "temp" | "permanent";
+  type: "temp" | "permanent" | "new";
   edited?: boolean;
   data?: any;
 }
@@ -39,7 +39,7 @@ export const Tabs = () => {
         inline: "center",
       });
     }
-  }, [id]);
+  }, [id, activeTabRef.current]);
 
   const closeTab = async (tab?: TabItem) => {
     if (!tab) return;
@@ -63,7 +63,7 @@ export const Tabs = () => {
         orientation={"horizontal"}
         size={150}
       >
-        <div className="absolute bottom-0 border-b-2 border-default w-[calc(100vw-25rem)]" />
+        <div className="absolute bottom-0 border-1 border-default w-full min-w-[calc(100vw-25rem)]" />
         <Chip
           ref={!id ? activeTabRef : null}
           className={cn(
@@ -91,12 +91,19 @@ export const Tabs = () => {
                 ? "border-2 border-b-background"
                 : cn(
                     "border-0 text-default-500 hover:bg-default hover:text-inherit before:absolute",
-                    "hover:before:hidden before:-left-0.5 before:h-2.5 before:border-1 before:border-default",
+                    "hover:before:hidden before:-left-0.5 before:h-3 before:border-1 before:border-default",
                   ),
             )}
             endContent={<XIcon size={16} />}
             radius={"md"}
             size={"lg"}
+            startContent={
+              tab.type === "new" && (
+                <span className="items-center font-bold text-default-500 text-md">
+                  *
+                </span>
+              )
+            }
             variant="bordered"
             onAuxClick={async (e) => {
               // 处理中键点击

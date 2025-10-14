@@ -1,19 +1,24 @@
 import { useEffect, useState, useRef } from "react";
-import { Alert, Button } from "@heroui/react";
-import { Outlet } from "react-router-dom";
+import { addToast, Alert, Button, ButtonGroup, ToastProvider, Tooltip } from "@heroui/react";
+import { Outlet, useNavigate } from "react-router-dom";
 
 import { Navbar } from "@/components/navbar";
-import { DoubleLeftIcon, DoubleRightIcon } from "@/components/icons.tsx";
+import {
+  DoubleLeftIcon,
+  DoubleRightIcon, ExportIcon,
+  PlusIcon,
+  RefreshIcon,
+} from "@/components/icons.tsx";
 import { siteConfig } from "@/config/site.ts";
 import { DialogSequences } from "@/components/dialog-sequences.tsx";
 import { InitSpeakers, Speakers } from "@/components/speakers.tsx";
-import { Tabs } from "@/components/tabs.tsx";
 import { useSessionStore } from "@/components/store.tsx";
 import logger from "@/components/logger.tsx";
 
 export default function DefaultLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const sessionStore = useSessionStore();
+  const navigate = useNavigate();
 
   // 添加侧边栏引用
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -74,6 +79,7 @@ export default function DefaultLayout() {
 
   return (
     <div className="relative flex flex-col h-screen">
+      <ToastProvider />
       {!("showOpenFilePicker" in self) && (
         <aside className="fixed top-16 w-full z-999">
           <Alert
@@ -86,7 +92,6 @@ export default function DefaultLayout() {
         </aside>
       )}
       <Navbar />
-      <Tabs />
       {/*侧边栏*/}
       <aside
         ref={sidebarRef}
@@ -109,7 +114,56 @@ export default function DefaultLayout() {
           )}
         </Button>
         <p className="font-bold text-inherit p-5">{siteConfig.name}</p>
-        <DialogSequences className="max-w-full max-h-full mx-3" />
+        <DialogSequences className="scrollbar-2 scrollbar-auto gutter-both max-w-full max-h-[calc(100vh-8rem)] mx-3 overflow-x-hidden" />
+        {useSessionStore((state) => state.dialogsFolder) && (
+          <ButtonGroup className="w-full max-w-full h-16">
+            <Tooltip content="重新加载">
+              <Button
+                isIconOnly
+                className="text-inherit"
+                variant="ghost"
+                onPress={() => {
+                  alert("TODO");
+                }}
+              >
+                <RefreshIcon size={18} />
+              </Button>
+            </Tooltip>
+            <Button
+              className="text-inherit"
+              variant="ghost"
+              onPress={() => {
+                if (sessionStore.tabs.some((t) => t.type === "new")) {
+                  addToast({
+                    title: "别急，先把刚刚新建的文件保存一下",
+                    color: "warning",
+                  });
+
+                  return;
+                }
+                navigate(
+                  // 随机生成对话序列名称
+                  `dialog-${Math.random().toString(36).substring(2, 7)}`,
+                );
+              }}
+            >
+              <PlusIcon size={18} />
+              新建对话
+            </Button>
+            <Tooltip content="导出">
+              <Button
+                isIconOnly
+                className="text-inherit"
+                variant="ghost"
+                onPress={() => {
+                  alert("TODO");
+                }}
+              >
+                <ExportIcon size={18} />
+              </Button>
+            </Tooltip>
+          </ButtonGroup>
+        )}
       </aside>
       <main
         className={`container flex-grow pb-12 pl-0 ${isCollapsed ? "" : "md:pl-56"} max-w-full`}

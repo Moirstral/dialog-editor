@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { openDB } from "idb";
+import { addToast } from "@heroui/react";
 
 import { DialogSequence } from "@/components/dialog-sequences.tsx";
 import logger from "@/components/logger.tsx";
@@ -112,6 +113,7 @@ interface SessionStoreState {
     folder: FileSystemDirectoryHandle,
     path: String,
   ) => Promise<void>;
+  loaded: boolean;
   loadSession: () => Promise<void>;
   tabs: TabItem[];
   openTab: (tab: TabItem) => Promise<void>;
@@ -138,6 +140,7 @@ export const useSessionStore = create<SessionStoreState>((set, get) => ({
   assessFolder: undefined,
   assessFolderPath: undefined,
   tabs: [],
+  loaded: false,
 
   loadSession: async () => {
     const dbSessionId = await db.get(sessionStore, "sessionId");
@@ -145,16 +148,16 @@ export const useSessionStore = create<SessionStoreState>((set, get) => ({
     if (dbSessionId !== get().sessionId) {
       await db.clear(sessionStore);
       await db.put(sessionStore, get().sessionId, "sessionId");
-
-      return;
+    } else {
+      set({
+        dialogsFolder: await db.get(sessionStore, "dialogsFolder"),
+        dialogsFolderPath: await db.get(sessionStore, "dialogsFolderPath"),
+        assessFolder: await db.get(sessionStore, "assessFolder"),
+        assessFolderPath: await db.get(sessionStore, "assessFolderPath"),
+        tabs: await db.get(sessionStore, "tabs"),
+      });
     }
-    set({
-      dialogsFolder: await db.get(sessionStore, "dialogsFolder"),
-      dialogsFolderPath: await db.get(sessionStore, "dialogsFolderPath"),
-      assessFolder: await db.get(sessionStore, "assessFolder"),
-      assessFolderPath: await db.get(sessionStore, "assessFolderPath"),
-      tabs: await db.get(sessionStore, "tabs"),
-    });
+    set({ loaded: true });
   },
 
   setDialogsFolder: async (folder: FileSystemDirectoryHandle, path: String) => {
@@ -173,14 +176,22 @@ export const useSessionStore = create<SessionStoreState>((set, get) => ({
   openTab: async (tab: TabItem) => {
     let tabs: TabItem[];
 
-    const tabItems = get().tabs || [];
+    const tabItems = get().tabs;
 
     if (tabItems.find((t) => t.key === tab.key)) {
       // 更新
       tabs = tabItems.map((t) => (t.key === tab.key ? tab : t));
     } else {
-      // 新增
-      tabs = [...tabItems, tab];
+      // 新增 同时只能有一个临时文件和新建文件
+      if (tab.type === "new" && tabItems.some((t) => t.type === "new")) {
+        tabs = tabItems;
+        addToast({
+          title: "别急，先把刚刚新建的文件保存一下",
+          color: "warning",
+        });
+      } else {
+        tabs = [...tabItems, tab];
+      }
     }
     set({ tabs });
     await db.put(sessionStore, tabs, "tabs");
