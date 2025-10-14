@@ -1,19 +1,93 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
-  <link rel="icon" href="/dialog-editor/favicon.png" type="image/png"/>
-  <link rel="manifest" href="/dialog-editor/manifest.json" />
-  <title>404 - 页面未找到</title>
-  <script type="module" crossorigin src="/dialog-editor/assets/404-BT0y51e6.js"></script>
-  <link rel="modulepreload" crossorigin href="/dialog-editor/assets/react-BP9S31LX.js">
-  <link rel="modulepreload" crossorigin href="/dialog-editor/assets/es-CpEmyloG.js">
-  <link rel="modulepreload" crossorigin href="/dialog-editor/assets/client-CJtVAOC4.js">
-  <link rel="modulepreload" crossorigin href="/dialog-editor/assets/globals-Bwl1y--n.js">
-  <link rel="stylesheet" crossorigin href="/dialog-editor/assets/globals-B4IYp_B8.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>页面未找到 - 404错误</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    body {
+      background-color: #17171A;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .error-code {
+      font-size: 180px;
+      font-weight: 700;
+      line-height: 1;
+      color: #1E1E22;
+      letter-spacing: 10px;
+      margin-bottom: 20px;
+    }
+
+    .description {
+      font-size: 20px;
+      margin-bottom: 40px;
+      color: #8A8A8E;
+      line-height: 1.5;
+      max-width: 500px;
+    }
+
+    .home-link {
+      display: inline-block;
+      padding: 12px 30px;
+      background-color: #2A2A2E;
+      color: #E5E5E7;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: 500;
+      font-size: 16px;
+      transition: background-color 0.2s ease;
+    }
+
+    .home-link:hover {
+      background-color: #3A3A3E;
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+      .error-code {
+        font-size: 140px;
+      }
+
+      .description {
+        font-size: 18px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .error-code {
+        font-size: 100px;
+        letter-spacing: 5px;
+      }
+
+      .description {
+        font-size: 16px;
+      }
+    }
+  </style>
 </head>
 <body>
-<div id="root"></div>
+<div class="error-code">404</div>
+
+<p class="description">
+  哎呀！这个页面好像迷路了...<br>
+  它可能正在宇宙的某个角落探险呢！
+</p>
+
+<a href="/dialog-editor/" class="home-link">返回首页</a>
 </body>
 </html>
