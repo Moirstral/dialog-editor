@@ -20,7 +20,7 @@ import {
   TrashIcon,
 } from "@/components/icons.tsx";
 import { Color } from "@/components/mc-color.tsx";
-import { useDialogStore, useTempStore } from "@/components/store.tsx";
+import { useDialogStore, useSessionStore } from "@/components/store.tsx";
 import logger from "@/components/logger.tsx";
 
 export enum DialogType {
@@ -226,7 +226,8 @@ interface ListboxWrapperProps extends HTMLAttributes<HTMLDivElement> {}
 // 对话序列组件
 export const DialogSequences = ({ ...props }: ListboxWrapperProps) => {
   const navigate = useNavigate();
-  const dialogsFolder = useTempStore((state) => state.dialogsFolder);
+  const session = useSessionStore();
+  const dialogsFolder = session.dialogsFolder;
   const [items, setItems] = useState<
     {
       id: string;
@@ -306,6 +307,7 @@ export const DialogSequences = ({ ...props }: ListboxWrapperProps) => {
             if (!find.dialogSequence || find.dialogSequence.fromDB) {
               await loadDialogData(key as string, find.handle);
             }
+            await session.openTab({ type: "permanent", key: key as string });
             navigate(`/${key}`);
           }}
         >
@@ -380,7 +382,7 @@ export const DialogSequences = ({ ...props }: ListboxWrapperProps) => {
           )}
         </Listbox>
       </ListboxWrapper>
-      {useTempStore((state) => state.dialogsFolder) && (
+      {useSessionStore((state) => state.dialogsFolder) && (
         <Button
           className="w-full text-inherit"
           size="lg"

@@ -6,7 +6,7 @@ import logger from "@/components/logger.tsx";
 import { siteConfig } from "@/config/site.ts";
 import { CodeFolderIcon } from "@/components/icons.tsx";
 import DefaultLayout from "@/layouts/default.tsx";
-import { useHistoryStore, useTempStore } from "@/components/store.tsx";
+import { useHistoryStore, useSessionStore } from "@/components/store.tsx";
 
 export default function IndexPage() {
   const { histories, loadHistories, addHistory, getDirHandle } =
@@ -14,7 +14,7 @@ export default function IndexPage() {
 
   useEffect(() => {
     loadHistories();
-  }, [loadHistories]);
+  }, []);
 
   const selectFolder = (folder: FileSystemDirectoryHandle | null) => {
     if (!folder) return;
@@ -31,10 +31,10 @@ export default function IndexPage() {
           const fullPath = `${path}/${name}`;
 
           if (fullPath.endsWith("/data/dialog/dialogs")) {
-            useTempStore.getState().setDialogsFolder(entry, fullPath);
+            await useSessionStore.getState().setDialogsFolder(entry, fullPath);
             valid = true;
           } else if (fullPath.includes("/assess/dialogs")) {
-            useTempStore.getState().setAssessFolder(entry, fullPath);
+            await useSessionStore.getState().setAssessFolder(entry, fullPath);
             valid = true;
           }
           // 递归处理子目录
@@ -105,7 +105,7 @@ export default function IndexPage() {
                               selectFolder(folder);
                             })
                             .catch((err: Error) => {
-                              logger.error(
+                              logger.warn(
                                 "Failed to open directory picker:",
                                 err,
                               );
@@ -126,7 +126,7 @@ export default function IndexPage() {
                       对话文件夹：
                       <span>
                         <span className={"text-primary-500"}>
-                          {useTempStore(
+                          {useSessionStore(
                             (state) => state.dialogsFolderPath || "未选择",
                           )}
                         </span>
@@ -136,7 +136,7 @@ export default function IndexPage() {
                       资源文件夹：
                       <span>
                         <span className={"text-primary-500"}>
-                          {useTempStore(
+                          {useSessionStore(
                             (state) => state.assessFolderPath || "未选择",
                           )}
                         </span>

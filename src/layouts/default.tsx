@@ -7,15 +7,21 @@ import { siteConfig } from "@/config/site.ts";
 import { DialogSequences } from "@/components/dialog-sequences.tsx";
 import { InitSpeakers, Speakers } from "@/components/speakers.tsx";
 import { Tabs } from "@/components/tabs.tsx";
+import { useSessionStore } from "@/components/store.tsx";
+import logger from "@/components/logger.tsx";
 
 export default function DefaultLayout({ children }: { children: ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const sessionStore = useSessionStore();
 
   // 添加侧边栏引用
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   // 添加窗口大小监听
   useEffect(() => {
+    // 加载会话存储
+    sessionStore.loadSession().then(() => logger.info("Session loaded"));
+
     const handleResize = () => {
       // 当屏幕宽度小于某个阈值时自动折叠侧边栏
       if (window.innerWidth < 768) {

@@ -22,12 +22,12 @@ import { DialogSequence } from "@/components/dialog-sequences.tsx";
 import { Graph } from "@/components/graph.tsx";
 import logger from "@/components/logger.tsx";
 import { FormSwitch } from "@/components/form-switch.tsx";
-import { useDialogStore, useTempStore } from "@/components/store.tsx";
+import { useDialogStore, useSessionStore } from "@/components/store.tsx";
 
 export default function EditorPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  let dialogsFolder = useTempStore((state) => state.dialogsFolder);
+  let dialogsFolder = useSessionStore((state) => state.dialogsFolder);
   const dialogStore = useDialogStore();
 
   // 如果ID不存在，跳转到主页
