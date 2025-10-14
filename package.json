@@ -9,6 +9,7 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
     "lint": "eslint --fix",
+    "prepreview": "npm run build",
     "preview": "vite preview",
     "postinstall": "patch-package"
   },
