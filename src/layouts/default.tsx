@@ -1,5 +1,6 @@
-import { useEffect, useState, ReactNode, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Alert, Button } from "@heroui/react";
+import { Outlet } from "react-router-dom";
 
 import { Navbar } from "@/components/navbar";
 import { DoubleLeftIcon, DoubleRightIcon } from "@/components/icons.tsx";
@@ -10,7 +11,7 @@ import { Tabs } from "@/components/tabs.tsx";
 import { useSessionStore } from "@/components/store.tsx";
 import logger from "@/components/logger.tsx";
 
-export default function DefaultLayout({ children }: { children: ReactNode }) {
+export default function DefaultLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const sessionStore = useSessionStore();
 
@@ -89,7 +90,7 @@ export default function DefaultLayout({ children }: { children: ReactNode }) {
       {/*侧边栏*/}
       <aside
         ref={sidebarRef}
-        className={`fixed left-0 top-0 h-full w-56 bg-foreground-50 transition-transform duration-300 ease-in-out shadow-medium z-99 text-foreground-600`}
+        className={`fixed left-0 top-0 h-full w-56 bg-foreground-50 transition-transform duration-300 ease-in-out shadow-medium z-40 text-foreground-600`}
         style={{
           transform: isCollapsed ? "translateX(-100%)" : "translateX(0)",
         }}
@@ -113,7 +114,7 @@ export default function DefaultLayout({ children }: { children: ReactNode }) {
       <main
         className={`container flex-grow pb-12 pl-0 ${isCollapsed ? "" : "md:pl-56"} max-w-full`}
       >
-        {children}
+        <Outlet />
       </main>
       {/*底栏*/}
       <aside
