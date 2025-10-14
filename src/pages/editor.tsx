@@ -157,7 +157,7 @@ export default function EditorPage() {
           <Card
             className={"w-full sm:w-96 py-2 mt-10 max-h-[calc(100vh-11rem)]"}
           >
-            <ScrollShadow className="scrollbar gutter-both scrollbar-w-1 scrollbar-thumb-rounded-full scrollbar-thumb-background hover:scrollbar-thumb-zinc-400">
+            <ScrollShadow className="scrollbar-1 scrollbar-auto gutter-both">
               <CardBody>
                 <Form className="w-full gap-3" onSubmit={onSubmit}>
                   <Input

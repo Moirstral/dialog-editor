@@ -43,8 +43,7 @@ export const HorizontalScrollbars: FC<HorizontalScrollbarsProps> = ({
     <ScrollShadow
       className={cn(
         className,
-        "overflow-y-hidden scrollbar scrollbar-thumb-rounded-full scrollbar-h-1 overscroll-contain",
-        "scrollbar-thumb-background hover:scrollbar-thumb-zinc-400 pt-1",
+        "overflow-y-hidden scrollbar-1 scrollbar-auto overscroll-contain pt-1",
         topScrollbar && "transform-[scaleY(-1)]",
       )}
       orientation={"horizontal"}

@@ -12,8 +12,43 @@
   scrollbar-gutter: stable both-edges;
 }
 
+@utility custom-scrollbar {
+  @apply scrollbar scrollbar-thumb-rounded-full scrollbar-h-2 scrollbar-w-2 scrollbar-thumb-zinc-500 scrollbar-hover:scrollbar-thumb-zinc-400;
+}
+
+@utility scrollbar-1 {
+  @apply custom-scrollbar scrollbar-h-0.5 scrollbar-w-0.5;
+}
+
+@utility scrollbar-2 {
+  @apply custom-scrollbar scrollbar-h-1 scrollbar-w-1;
+}
+
+@property --scrollbar-animation {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@utility scrollbar-auto {
+  @apply scrollbar-thumb-transparent hover:scrollbar-thumb-zinc-400;
+}
+
+.scrollbar-auto {
+  transition: --scrollbar-animation .5s ease-out .5s;
+}
+
+.scrollbar-auto:hover {
+  --scrollbar-animation: #9f9fa9;
+  transition: --scrollbar-animation .5s ease-out 0s;
+}
+
+.scrollbar-auto::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-animation);
+}
+
 :root {
-  @apply scrollbar scrollbar-thumb-rounded-full scrollbar-h-2 scrollbar-w-2 scrollbar-thumb-zinc-400;
+  @apply custom-scrollbar;
 }
 
 @plugin 'tailwind-scrollbar' {
