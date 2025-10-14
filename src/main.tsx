@@ -8,7 +8,7 @@ import "@/styles/globals.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <BrowserRouter basename="/dialog-editor/">
+    <BrowserRouter basename={import.meta.env.BASE_URL || "/"}>
       <Provider>
         <App />
       </Provider>

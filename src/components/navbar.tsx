@@ -12,7 +12,7 @@ import { ThemeSwitch } from "@/components/theme-switch";
 import { GithubIcon, HeartFilledIcon } from "@/components/icons.tsx";
 import { Tabs } from "@/components/tabs.tsx";
 
-export const Navbar = () => {
+export const Navbar = ({ isShowTabs = true }) => {
   return (
     <HeroUINavbar shouldHideOnScroll maxWidth="full">
       <NavbarContent className="basis-1/5 sm:basis-full" justify="start">
@@ -53,7 +53,7 @@ export const Navbar = () => {
           <HeartFilledIcon className="hidden md:flex text-red-400 cursor-pointer hover:animate-heart-beat" />
         </Tooltip>
 
-        <Tabs />
+        {isShowTabs && <Tabs />}
       </NavbarContent>
     </HeroUINavbar>
   );

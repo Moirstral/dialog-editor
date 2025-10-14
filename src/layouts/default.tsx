@@ -1,11 +1,19 @@
 import { useEffect, useState, useRef } from "react";
-import { addToast, Alert, Button, ButtonGroup, ToastProvider, Tooltip } from "@heroui/react";
+import {
+  addToast,
+  Alert,
+  Button,
+  ButtonGroup,
+  ToastProvider,
+  Tooltip,
+} from "@heroui/react";
 import { Outlet, useNavigate } from "react-router-dom";
 
 import { Navbar } from "@/components/navbar";
 import {
   DoubleLeftIcon,
-  DoubleRightIcon, ExportIcon,
+  DoubleRightIcon,
+  ExportIcon,
   PlusIcon,
   RefreshIcon,
 } from "@/components/icons.tsx";

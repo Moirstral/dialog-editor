@@ -8,7 +8,7 @@ import DefaultLayout from "@/layouts/default.tsx";
 function App() {
   return (
     <Routes>
-      <Route element={<NotFoundPage />} path="/404/:url" />
+      <Route element={<NotFoundPage />} path="/404.html" />
       <Route element={<DefaultLayout />}>
         <Route element={<IndexPage />} path="/" />
         <Route element={<EditorPage />} path="/:id" />
