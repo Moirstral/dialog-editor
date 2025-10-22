@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { XIcon } from "@/components/icons.tsx";
 import { HorizontalScrollbars } from "@/components/scrollbars.tsx";
-import { useSessionStore } from "@/components/store.tsx";
+import { useWorkspaceStore } from "@/components/store.tsx";
 
 export interface TabItem {
   key: string;
@@ -47,7 +47,7 @@ export const Tabs = () => {
       setToBeClosedTab(tab);
       onOpen();
     } else {
-      await useSessionStore.getState().closeTab(tab.key);
+      await useWorkspaceStore.getState().closeTab(tab.key);
       if (id === tab.key) navigate("/");
     }
   };
@@ -81,47 +81,49 @@ export const Tabs = () => {
         >
           首页
         </Chip>
-        {useSessionStore.getState().tabs?.map((tab: TabItem) => (
-          <Chip
-            key={tab.key}
-            ref={id === tab.key ? activeTabRef : null}
-            className={cn(
-              "h-8 text-small gap-3 rounded-b-none cursor-pointer select-none",
-              id === tab.key
-                ? "border-2 border-b-background"
-                : cn(
-                    "border-0 text-default-500 hover:bg-default hover:text-inherit before:absolute",
-                    "hover:before:hidden before:-left-0.5 before:h-3 before:border-1 before:border-default",
-                  ),
-            )}
-            endContent={<XIcon size={16} />}
-            radius={"md"}
-            size={"lg"}
-            startContent={
-              tab.type === "new" && (
-                <span className="items-center font-bold text-default-500 text-md">
-                  *
-                </span>
-              )
-            }
-            variant="bordered"
-            onAuxClick={async (e) => {
-              // 处理中键点击
-              if (e.button === 1) {
-                e.preventDefault();
-                await closeTab(tab);
+        {useWorkspaceStore
+          .getState()
+          .currentWorkspace?.tabs?.map((tab: TabItem) => (
+            <Chip
+              key={tab.key}
+              ref={id === tab.key ? activeTabRef : null}
+              className={cn(
+                "h-8 text-small gap-3 rounded-b-none cursor-pointer select-none",
+                id === tab.key
+                  ? "border-2 border-b-background"
+                  : cn(
+                      "border-0 text-default-500 hover:bg-default hover:text-inherit before:absolute",
+                      "hover:before:hidden before:-left-0.5 before:h-3 before:border-1 before:border-default",
+                    ),
+              )}
+              endContent={<XIcon size={16} />}
+              radius={"md"}
+              size={"lg"}
+              startContent={
+                tab.type === "new" && (
+                  <span className="items-center font-bold text-default-500 text-md">
+                    *
+                  </span>
+                )
               }
-            }}
-            onClick={() => {
-              if (id !== tab.key) {
-                navigate(`/${tab.key}`);
-              }
-            }}
-            onClose={() => closeTab(tab)}
-          >
-            {tab.key}
-          </Chip>
-        ))}
+              variant="bordered"
+              onAuxClick={async (e) => {
+                // 处理中键点击
+                if (e.button === 1) {
+                  e.preventDefault();
+                  await closeTab(tab);
+                }
+              }}
+              onClick={() => {
+                if (id !== tab.key) {
+                  navigate(`/${tab.key}`);
+                }
+              }}
+              onClose={() => closeTab(tab)}
+            >
+              {tab.key}
+            </Chip>
+          ))}
       </HorizontalScrollbars>
       <Modal isDismissable={false} isOpen={isOpen} onOpenChange={onOpenChange}>
         <ModalContent>

@@ -14,17 +14,17 @@ import {
   Tabs,
   Textarea,
 } from "@heroui/react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { DialogEntryCard } from "@/components/dialog-entry.tsx";
 import { DialogSequence } from "@/components/dialog-sequences.tsx";
 import { Graph } from "@/components/graph.tsx";
 import logger from "@/components/logger.tsx";
 import { FormSwitch } from "@/components/form-switch.tsx";
-import { useDialogStore, useSessionStore } from "@/components/store.tsx";
+import { useDialogStore, useWorkspaceStore } from "@/components/store.tsx";
 
 export default function EditorPage() {
-  const session = useSessionStore();
+  const workspaceState = useWorkspaceStore();
   const { id } = useParams<{ id: string }>();
   const dialogStore = useDialogStore();
   const defaultDialogSequence = {
@@ -37,26 +37,32 @@ export default function EditorPage() {
       },
     ],
   };
+  const navigate = useNavigate();
 
   const [dialogSequence, setDialogSequence] = useState<DialogSequence>(
     defaultDialogSequence,
   );
 
   useEffect(() => {
-    logger.info("Dialog Sequence:", id, session.loaded);
+    if (!sessionStorage.getItem("currentWorkspace")) {
+      navigate("/");
+    }
+  }, []);
+
+  useEffect(() => {
+    logger.info("Dialog Sequence:", id);
     id &&
-      session.loaded &&
       dialogStore.getDialogSequence(id).then((dialogSequence) => {
         logger.info("Dialog Sequence:", dialogSequence);
         if (dialogSequence) {
           setDialogSequence(dialogSequence);
         } else {
-          session.openTab({ type: "new", key: id }).then(() => {
+          workspaceState.openTab({ type: "new", key: id }).then(() => {
             setDialogSequence(defaultDialogSequence);
           });
         }
       });
-  }, [id, dialogStore, session.loaded]);
+  }, [id, dialogStore]);
 
   const data = useMemo(
     () => ({
@@ -153,110 +159,112 @@ export default function EditorPage() {
   };
 
   return (
-    <div
-      key={`title-${dialogSequence.id}`}
-      className={"w-full h-full overflow-hidden"}
-    >
-      <Tabs
-        aria-label="Options"
-        classNames={{
-          base: "absolute z-10 md:pl-3",
-          panel: "absolute z-9 w-full sm:w-auto md:pl-3",
-        }}
+    (sessionStorage.getItem("currentWorkspace") && (
+      <div
+        key={`title-${dialogSequence.id}`}
+        className={"w-full h-full overflow-hidden"}
       >
-        <Tab key="property" title="属性">
-          <Card
-            className={"w-full sm:w-96 py-2 mt-10 max-h-[calc(100vh-11rem)]"}
-          >
-            <ScrollShadow className="scrollbar-1 scrollbar-auto gutter-both">
-              <CardBody>
-                <Form className="w-full gap-3" onSubmit={onSubmit}>
-                  <Input
-                    isClearable
-                    isRequired
-                    defaultValue={dialogSequence.id}
-                    label="ID (唯一，请勿重复)"
-                    labelPlacement="inside"
-                    name="id"
-                    type="text"
-                  />
-                  <Select
-                    defaultSelectedKeys={[
-                      dialogSequence.type?.toString() ?? "SCREEN",
-                    ]}
-                    label="类型"
-                    name="type"
-                  >
-                    <SelectItem key={"OVERLAY"}>
-                      覆层（类似字幕，不影响操作）
-                    </SelectItem>
-                    <SelectItem key={"SCREEN"}>
-                      屏幕（默认，影响操作）
-                    </SelectItem>
-                    <SelectItem key={"MENU"}>
-                      菜单（屏幕的变种，对话框较窄）
-                    </SelectItem>
-                  </Select>
-                  <Input
-                    isClearable
-                    defaultValue={dialogSequence.title}
-                    label="标题"
-                    labelPlacement="inside"
-                    name="title"
-                    type="text"
-                  />
-                  <Textarea
-                    isClearable
-                    defaultValue={dialogSequence.description}
-                    label="描述"
-                    labelPlacement="inside"
-                    minRows={1}
-                    name="description"
-                    placeholder={"不会在游戏中显示，仅做标识"}
-                  />
-                  <FormSwitch
-                    defaultSelected={dialogSequence.allowClose}
-                    description="是否允许通过 Esc 键关闭对话"
-                    label="是否可关闭"
-                    name="allowClose"
-                    value="true"
-                  />
-                  <FormSwitch
-                    defaultSelected={dialogSequence.invulnerable}
-                    description={[
-                      "开启对话框后是否无敌",
-                      "无敌后不受伤害，且不可被选中",
-                    ]}
-                    label="是否无敌"
-                    name="invulnerable"
-                    value="true"
-                  />
-                  <FormSwitch
-                    defaultSelected={dialogSequence.invisible}
-                    description={[
-                      "开启对话框后是否隐身，隐身后玩家且不可见",
-                      "隐身后必定无敌",
-                    ]}
-                    label="是否隐身"
-                    name="invisible"
-                    value="true"
-                  />
-                  <div className="flex gap-2 w-full mt-3">
-                    <Button className={"w-4/7"} type="reset" variant="flat">
-                      重置
-                    </Button>
-                    <Button className={"w-4/7"} color="primary" type="submit">
-                      保存
-                    </Button>
-                  </div>
-                </Form>
-              </CardBody>
-            </ScrollShadow>
-          </Card>
-        </Tab>
-        <Tab key="sequence" title="对话序列" />
-      </Tabs>
-      <Graph id="dialog-entries" options={options} />
-    </div>
+        <Tabs
+          aria-label="Options"
+          classNames={{
+            base: "absolute z-10 md:pl-3",
+            panel: "absolute z-9 w-full sm:w-auto md:pl-3",
+          }}
+        >
+          <Tab key="property" title="属性">
+            <Card
+              className={"w-full sm:w-96 py-2 mt-10 max-h-[calc(100vh-11rem)]"}
+            >
+              <ScrollShadow className="scrollbar-1 scrollbar-auto gutter-both">
+                <CardBody>
+                  <Form className="w-full gap-3" onSubmit={onSubmit}>
+                    <Input
+                      isClearable
+                      isRequired
+                      defaultValue={dialogSequence.id}
+                      label="ID (唯一，请勿重复)"
+                      labelPlacement="inside"
+                      name="id"
+                      type="text"
+                    />
+                    <Select
+                      defaultSelectedKeys={[
+                        dialogSequence.type?.toString() ?? "SCREEN",
+                      ]}
+                      label="类型"
+                      name="type"
+                    >
+                      <SelectItem key={"OVERLAY"}>
+                        覆层（类似字幕，不影响操作）
+                      </SelectItem>
+                      <SelectItem key={"SCREEN"}>
+                        屏幕（默认，影响操作）
+                      </SelectItem>
+                      <SelectItem key={"MENU"}>
+                        菜单（屏幕的变种，对话框较窄）
+                      </SelectItem>
+                    </Select>
+                    <Input
+                      isClearable
+                      defaultValue={dialogSequence.title}
+                      label="标题"
+                      labelPlacement="inside"
+                      name="title"
+                      type="text"
+                    />
+                    <Textarea
+                      isClearable
+                      defaultValue={dialogSequence.description}
+                      label="描述"
+                      labelPlacement="inside"
+                      minRows={1}
+                      name="description"
+                      placeholder={"不会在游戏中显示，仅做标识"}
+                    />
+                    <FormSwitch
+                      defaultSelected={dialogSequence.allowClose}
+                      description="是否允许通过 Esc 键关闭对话"
+                      label="是否可关闭"
+                      name="allowClose"
+                      value="true"
+                    />
+                    <FormSwitch
+                      defaultSelected={dialogSequence.invulnerable}
+                      description={[
+                        "开启对话框后是否无敌",
+                        "无敌后不受伤害，且不可被选中",
+                      ]}
+                      label="是否无敌"
+                      name="invulnerable"
+                      value="true"
+                    />
+                    <FormSwitch
+                      defaultSelected={dialogSequence.invisible}
+                      description={[
+                        "开启对话框后是否隐身，隐身后玩家且不可见",
+                        "隐身后必定无敌",
+                      ]}
+                      label="是否隐身"
+                      name="invisible"
+                      value="true"
+                    />
+                    <div className="flex gap-2 w-full mt-3">
+                      <Button className={"w-4/7"} type="reset" variant="flat">
+                        重置
+                      </Button>
+                      <Button className={"w-4/7"} color="primary" type="submit">
+                        保存
+                      </Button>
+                    </div>
+                  </Form>
+                </CardBody>
+              </ScrollShadow>
+            </Card>
+          </Tab>
+          <Tab key="sequence" title="对话序列" />
+        </Tabs>
+        <Graph id={`dialog-entries-${dialogSequence.id}`} options={options} />
+      </div>
+    )) || <></>
   );
 }

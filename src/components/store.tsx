@@ -6,20 +6,18 @@ import { DialogSequence } from "@/components/dialog-sequences.tsx";
 import logger from "@/components/logger.tsx";
 import { TabItem } from "@/components/tabs.tsx";
 
-const historyStore = "history-store";
-const handleStore = "handle-store";
+const workspaceStore = "workspace-store";
 const dialogsStore = "dialogs-store";
 const speakersStore = "speakers-store";
-const sessionStore = "session-store";
-const stores = [
-  historyStore,
-  handleStore,
-  dialogsStore,
-  speakersStore,
-  sessionStore,
-];
-const db = await openDB("tdeditor-db", 2510151356, {
+const stores = [workspaceStore, dialogsStore, speakersStore];
+const abandonedStores = ["handle-store", "history-store", "session-store"];
+const db = await openDB("tdeditor-db", 2510231510, {
   upgrade(db) {
+    abandonedStores.forEach((storeName) => {
+      if (db.objectStoreNames.contains(storeName)) {
+        db.deleteObjectStore(storeName);
+      }
+    });
     stores.forEach((storeName) => {
       if (!db.objectStoreNames.contains(storeName)) {
         db.createObjectStore(storeName);
@@ -28,39 +26,208 @@ const db = await openDB("tdeditor-db", 2510151356, {
   },
 });
 
-interface DirHandleStoreState {
-  histories: string[];
-  loadHistories: () => void;
-  addHistory: (id: string, handle: FileSystemDirectoryHandle) => Promise<void>;
-  getDirHandle: (id: string) => Promise<FileSystemDirectoryHandle>;
+// 工作区记录接口
+interface WorkspaceRecord {
+  folderName: string;
+  folderHandle: FileSystemDirectoryHandle;
+  lastAccessed: number;
+  // 当前会话状态
+  dialogsFolder?: FileSystemDirectoryHandle;
+  dialogsFolderPath?: string;
+  assessFolder?: FileSystemDirectoryHandle;
+  assessFolderPath?: string;
+  tabs: TabItem[];
 }
 
-export const useHistoryStore = create<DirHandleStoreState>((set, get) => ({
-  histories: [],
+// 工作区状态接口
+interface WorkspaceState {
+  // 历史工作区列表
+  histories: string[];
+  // 当前工作区
+  currentWorkspace: WorkspaceRecord | null;
 
+  // 历史工作区管理
+  loadHistories: () => Promise<void>;
+  loadCurrentWorkspace: () => Promise<void>;
+  addWorkspace: (
+    record: Omit<WorkspaceRecord, "lastAccessed">,
+  ) => Promise<void>;
+  getWorkspace: (folderName: string) => Promise<WorkspaceRecord | null>;
+  getDirHandle: (
+    folderName: string,
+  ) => Promise<FileSystemDirectoryHandle | null>;
+
+  // 当前工作区管理
+  setCurrentWorkspace: (record: WorkspaceRecord) => void;
+  clearCurrentWorkspace: () => void;
+
+  // 文件夹管理
+  setDialogsFolder: (
+    folder: FileSystemDirectoryHandle,
+    path: string,
+  ) => Promise<void>;
+  setAssessFolder: (
+    folder: FileSystemDirectoryHandle,
+    path: string,
+  ) => Promise<void>;
+
+  // 标签页管理
+  openTab: (tab: TabItem) => Promise<void>;
+  closeTab: (key: string) => Promise<void>;
+}
+
+export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
+  histories: [],
+  currentWorkspace: null,
+
+  // 历史工作区管理
   loadHistories: async () => {
     logger.info("loadHistories");
-    const allEntries = await db.getAll(historyStore);
-    const allKeys = await db.getAllKeys(historyStore);
-    const histories = allKeys
-      .map((key, index) => [key, allEntries[index]])
-      .sort((a, b) => b[1] - a[1])
+    const allRecords = await db.getAll(workspaceStore);
+    const histories = allRecords
+      .filter((record) => record.folderName)
+      .sort((a, b) => b.lastAccessed - a.lastAccessed)
       .slice(0, 6)
-      .map(([key, _]) => key);
+      .map((record) => record.folderName);
 
-    set({ histories: histories });
+    set({ histories });
   },
 
-  addHistory: async (id: string, handle: FileSystemDirectoryHandle) => {
-    await db.delete(historyStore, id);
-    await db.delete(handleStore, id);
-    await db.put(historyStore, Date.now(), id);
-    await db.put(handleStore, handle, id);
-    // 重新加载数据以触发更新
-    get().loadHistories();
+  loadCurrentWorkspace: async () => {
+    const currentState = get();
+
+    if (currentState.currentWorkspace) return;
+    const sessionWorkSpace = sessionStorage.getItem("currentWorkspace");
+
+    if (!sessionWorkSpace) return;
+    const currentWorkspace = await get().getWorkspace(sessionWorkSpace);
+
+    if (currentWorkspace) {
+      set({ currentWorkspace });
+    }
   },
 
-  getDirHandle: (id: string) => db.get(handleStore, id),
+  addWorkspace: async (record: Omit<WorkspaceRecord, "lastAccessed">) => {
+    const workspaceRecord: WorkspaceRecord = {
+      ...record,
+      lastAccessed: Date.now(),
+    };
+
+    // 保存工作区记录
+    await db.put(workspaceStore, workspaceRecord, record.folderName);
+
+    // 重新加载历史列表
+    await get().loadHistories();
+
+    logger.info("Workspace added:", workspaceRecord);
+  },
+
+  getWorkspace: async (folderName: string) => {
+    return await db.get(workspaceStore, folderName);
+  },
+
+  getDirHandle: async (folderName: string) => {
+    const workspace = await db.get(workspaceStore, folderName);
+
+    return workspace?.folderHandle || null;
+  },
+
+  // 当前工作区管理
+  setCurrentWorkspace: (record: WorkspaceRecord) => {
+    set({ currentWorkspace: record });
+    sessionStorage.setItem("currentWorkspace", record.folderName);
+  },
+
+  clearCurrentWorkspace: () => {
+    set({ currentWorkspace: null });
+    sessionStorage.removeItem("currentWorkspace");
+  },
+
+  // 文件夹管理
+  setDialogsFolder: async (folder: FileSystemDirectoryHandle, path: string) => {
+    const currentState = get();
+
+    if (currentState.currentWorkspace) {
+      currentState.currentWorkspace.dialogsFolder = folder;
+      currentState.currentWorkspace.dialogsFolderPath = path;
+
+      // 更新数据库中的记录
+      await db.put(
+        workspaceStore,
+        currentState.currentWorkspace,
+        currentState.currentWorkspace.folderName,
+      );
+    }
+  },
+
+  setAssessFolder: async (folder: FileSystemDirectoryHandle, path: string) => {
+    const currentState = get();
+
+    if (currentState.currentWorkspace) {
+      currentState.currentWorkspace.assessFolder = folder;
+      currentState.currentWorkspace.assessFolderPath = path;
+
+      // 更新数据库中的记录
+      await db.put(
+        workspaceStore,
+        currentState.currentWorkspace,
+        currentState.currentWorkspace.folderName,
+      );
+    }
+  },
+
+  // 标签页管理
+  openTab: async (tab: TabItem) => {
+    const currentState = get();
+
+    if (!currentState.currentWorkspace) return;
+
+    let tabs: TabItem[];
+    const tabItems = currentState.currentWorkspace.tabs;
+
+    if (tabItems.find((t) => t.key === tab.key)) {
+      // 更新
+      tabs = tabItems.map((t) => (t.key === tab.key ? tab : t));
+    } else {
+      // 新增 同时只能有一个临时文件和新建文件
+      if (tab.type === "new" && tabItems.some((t) => t.type === "new")) {
+        tabs = tabItems;
+        addToast({
+          title: "别急，先把刚刚新建的文件保存一下",
+          color: "warning",
+        });
+      } else {
+        tabs = [...tabItems, tab];
+      }
+    }
+
+    currentState.currentWorkspace.tabs = tabs;
+    set({ currentWorkspace: currentState.currentWorkspace });
+
+    // 更新数据库
+    await db.put(
+      workspaceStore,
+      currentState.currentWorkspace,
+      currentState.currentWorkspace.folderName,
+    );
+  },
+
+  closeTab: async (key: string) => {
+    const currentState = get();
+
+    if (!currentState.currentWorkspace) return;
+
+    currentState.currentWorkspace.tabs =
+      currentState.currentWorkspace.tabs.filter((t) => t.key !== key);
+    set({ currentWorkspace: currentState.currentWorkspace });
+
+    // 更新数据库
+    await db.put(
+      workspaceStore,
+      currentState.currentWorkspace,
+      currentState.currentWorkspace.folderName,
+    );
+  },
 }));
 
 export interface DialogStoreState {
@@ -91,115 +258,5 @@ export const useDialogStore = create<DialogStoreState>((set, get) => ({
   deleteDialogSequence: async (id: string) => {
     await db.delete(dialogsStore, id);
     await get().loadDialogSequences();
-  },
-}));
-
-interface SessionStoreState {
-  // 会话唯一标识符
-  sessionId: string;
-  // 对话文件夹 handle
-  dialogsFolder: FileSystemDirectoryHandle | undefined;
-  // 对话文件夹路径
-  dialogsFolderPath: String | undefined;
-  setDialogsFolder: (
-    folder: FileSystemDirectoryHandle,
-    path: String,
-  ) => Promise<void>;
-  // 资源文件夹 handle
-  assessFolder: FileSystemDirectoryHandle | undefined;
-  // 资源文件夹路径
-  assessFolderPath: String | undefined;
-  setAssessFolder: (
-    folder: FileSystemDirectoryHandle,
-    path: String,
-  ) => Promise<void>;
-  loaded: boolean;
-  loadSession: () => Promise<void>;
-  tabs: TabItem[];
-  openTab: (tab: TabItem) => Promise<void>;
-  closeTab: (key: string) => Promise<void>;
-}
-
-// 获取当前会话的唯一标识
-const getSessionId = (): string => {
-  let sessionId = sessionStorage.getItem("sessionId");
-
-  if (!sessionId) {
-    sessionId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-    sessionStorage.setItem("sessionId", sessionId);
-  }
-
-  return sessionId;
-};
-
-// 临时存储 @TODO 刷新就没了，得改
-export const useSessionStore = create<SessionStoreState>((set, get) => ({
-  sessionId: getSessionId(),
-  dialogsFolder: undefined,
-  dialogsFolderPath: undefined,
-  assessFolder: undefined,
-  assessFolderPath: undefined,
-  tabs: [],
-  loaded: false,
-
-  loadSession: async () => {
-    const dbSessionId = await db.get(sessionStore, "sessionId");
-
-    if (dbSessionId !== get().sessionId) {
-      await db.clear(sessionStore);
-      await db.put(sessionStore, get().sessionId, "sessionId");
-    } else {
-      set({
-        dialogsFolder: await db.get(sessionStore, "dialogsFolder"),
-        dialogsFolderPath: await db.get(sessionStore, "dialogsFolderPath"),
-        assessFolder: await db.get(sessionStore, "assessFolder"),
-        assessFolderPath: await db.get(sessionStore, "assessFolderPath"),
-        tabs: await db.get(sessionStore, "tabs"),
-      });
-    }
-    set({ loaded: true });
-  },
-
-  setDialogsFolder: async (folder: FileSystemDirectoryHandle, path: String) => {
-    set({ dialogsFolder: folder });
-    set({ dialogsFolderPath: path });
-    await db.put(sessionStore, folder, "dialogsFolder");
-    await db.put(sessionStore, path, "dialogsFolderPath");
-  },
-  setAssessFolder: async (folder: FileSystemDirectoryHandle, path: String) => {
-    set({ assessFolder: folder });
-    set({ assessFolderPath: path });
-    await db.put(sessionStore, folder, "assessFolder");
-    await db.put(sessionStore, path, "assessFolderPath");
-  },
-
-  openTab: async (tab: TabItem) => {
-    let tabs: TabItem[];
-
-    const tabItems = get().tabs;
-
-    if (tabItems.find((t) => t.key === tab.key)) {
-      // 更新
-      tabs = tabItems.map((t) => (t.key === tab.key ? tab : t));
-    } else {
-      // 新增 同时只能有一个临时文件和新建文件
-      if (tab.type === "new" && tabItems.some((t) => t.type === "new")) {
-        tabs = tabItems;
-        addToast({
-          title: "别急，先把刚刚新建的文件保存一下",
-          color: "warning",
-        });
-      } else {
-        tabs = [...tabItems, tab];
-      }
-    }
-    set({ tabs });
-    await db.put(sessionStore, tabs, "tabs");
-  },
-  closeTab: async (key: string) => {
-    const tabs = get().tabs.filter((t) => t.key !== key);
-
-    set({ tabs });
-    await db.put(sessionStore, tabs, "tabs");
   },
 }));

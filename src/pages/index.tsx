@@ -1,54 +1,172 @@
-import { Button } from "@heroui/react";
+import { Button, Link, Tooltip } from "@heroui/react";
 import { useEffect } from "react";
 
 import { DropFolder } from "@/components/drop-folder.tsx";
 import logger from "@/components/logger.tsx";
 import { siteConfig } from "@/config/site.ts";
-import { CodeFolderIcon } from "@/components/icons.tsx";
-import { useHistoryStore, useSessionStore } from "@/components/store.tsx";
+import { CodeFolderIcon, RefreshIcon } from "@/components/icons.tsx";
+import { useWorkspaceStore } from "@/components/store.tsx";
 
 export default function IndexPage() {
-  const { histories, loadHistories, addHistory, getDirHandle } =
-    useHistoryStore();
+  const {
+    histories,
+    loadHistories,
+    addWorkspace,
+    getWorkspace,
+    getDirHandle,
+    setCurrentWorkspace,
+    setDialogsFolder,
+    setAssessFolder,
+    currentWorkspace,
+  } = useWorkspaceStore();
 
   useEffect(() => {
     loadHistories();
   }, []);
 
-  const selectFolder = (folder: FileSystemDirectoryHandle | null) => {
+  useEffect(() => {
+    if (histories.length === 0) return;
+    loadWorkspace().catch((_) => {});
+  }, [histories]);
+
+  const loadWorkspace = async (workspace?: string) => {
+    const id = workspace || histories[0];
+
+    logger.info("loadWorkspace", id);
+    if (currentWorkspace?.folderName === id) return;
+
+    const folder = await getDirHandle(id);
+
+    logger.info("loadWorkspace", folder);
     if (!folder) return;
+    const hasPermission = await requestFolderPermission(folder);
 
-    // 定义递归遍历函数
-    const traverseDirectory = async (
-      dirHandle: FileSystemDirectoryHandle,
-      path = "",
-    ) => {
-      let valid = false;
+    if (!hasPermission) return;
 
-      for await (const [name, entry] of dirHandle.entries()) {
-        if (entry.kind === "directory") {
-          const fullPath = `${path}/${name}`;
+    // 检查是否有工作区记录
+    const workspaceRecord = await getWorkspace(id);
 
-          if (fullPath.endsWith("/data/dialog/dialogs")) {
-            await useSessionStore.getState().setDialogsFolder(entry, fullPath);
-            valid = true;
-          } else if (fullPath.includes("/assess/dialogs")) {
-            await useSessionStore.getState().setAssessFolder(entry, fullPath);
-            valid = true;
-          }
-          // 递归处理子目录
-          await traverseDirectory(entry, fullPath);
+    if (workspaceRecord) {
+      // 恢复工作区状态
+      setCurrentWorkspace(workspaceRecord);
+
+      // 设置文件夹状态
+      if (workspaceRecord.dialogsFolder && workspaceRecord.dialogsFolderPath) {
+        await setDialogsFolder(
+          workspaceRecord.dialogsFolder,
+          workspaceRecord.dialogsFolderPath,
+        );
+      }
+      if (workspaceRecord.assessFolder && workspaceRecord.assessFolderPath) {
+        await setAssessFolder(
+          workspaceRecord.assessFolder,
+          workspaceRecord.assessFolderPath,
+        );
+      }
+
+      logger.info("Workspace restored:", workspaceRecord);
+    } else {
+      // 没有工作区记录，重新扫描文件夹
+      await selectFolder(folder);
+      logger.info("Workspace created:", folder.name);
+    }
+  };
+
+  // 定义递归遍历函数
+  const traverseDirectory = async (
+    dirHandle: FileSystemDirectoryHandle,
+    path = dirHandle.name,
+  ): Promise<{
+    dialogFolderPath?: string;
+    dialogsFolder?: FileSystemDirectoryHandle;
+    assessFolderPath?: string;
+    assessFolder?: FileSystemDirectoryHandle;
+  }> => {
+    let dialogFolderPath = undefined;
+    let dialogsFolder = undefined;
+    let assessFolderPath = undefined;
+    let assessFolder = undefined;
+
+    for await (const [name, entry] of dirHandle.entries()) {
+      if (entry.kind === "directory") {
+        const fullPath = `${path}/${name}`;
+
+        if (fullPath.endsWith("/data/dialog/dialogs")) {
+          dialogFolderPath = fullPath;
+          dialogsFolder = entry;
+          logger.info("Dialogs folder found:", dialogFolderPath);
+        } else if (fullPath.endsWith("/assets/dialog")) {
+          assessFolderPath = fullPath;
+          assessFolder = entry;
+          logger.info("Assess folder found:", assessFolderPath);
+        }
+        // 递归处理子目录
+        const {
+          dialogFolderPath: subDialogPath,
+          dialogsFolder: subDialogsFolder,
+          assessFolderPath: subAssessPath,
+          assessFolder: subAssessFolder,
+        } = await traverseDirectory(entry, fullPath);
+
+        // 合并结果
+        if (subDialogPath) {
+          dialogFolderPath = subDialogPath;
+          dialogsFolder = subDialogsFolder;
+        }
+        if (subAssessPath) {
+          assessFolderPath = subAssessPath;
+          assessFolder = subAssessFolder;
         }
       }
-      if (valid) {
-        await addHistory(folder.name, folder);
-      }
-    };
+    }
+
+    return { dialogFolderPath, dialogsFolder, assessFolderPath, assessFolder };
+  };
+
+  const selectFolder = async (folder: FileSystemDirectoryHandle | null) => {
+    logger.info("Selected folder:", folder);
+    if (!folder) return;
 
     // 开始遍历根目录
-    traverseDirectory(folder, folder.name).catch((err: Error) =>
-      logger.error("打开文件夹失败：", folder, err),
-    );
+    try {
+      const {
+        dialogFolderPath,
+        dialogsFolder,
+        assessFolderPath,
+        assessFolder,
+      } = await traverseDirectory(folder);
+
+      logger.info("selectFolder", dialogFolderPath, dialogsFolder);
+      // 如果找到了对话文件夹，创建工作区记录
+      if (dialogFolderPath && dialogsFolder) {
+        const workspaceRecord = {
+          folderName: folder.name,
+          folderHandle: folder,
+          dialogFolderPath,
+          dialogsFolder,
+          assessFolderPath,
+          assessFolder,
+          tabs: [],
+        };
+
+        // 添加工作区记录
+        await addWorkspace(workspaceRecord);
+
+        // 设置为当前工作区
+        setCurrentWorkspace({
+          ...workspaceRecord,
+          lastAccessed: Date.now(),
+        });
+
+        // 设置文件夹状态
+        await setDialogsFolder(dialogsFolder, dialogFolderPath);
+        if (assessFolder && assessFolderPath) {
+          await setAssessFolder(assessFolder, assessFolderPath);
+        }
+      }
+    } catch (err) {
+      logger.error("打开文件夹失败：", folder, err);
+    }
   };
 
   const requestFolderPermission = async (folder: FileSystemDirectoryHandle) => {
@@ -116,31 +234,40 @@ export default function IndexPage() {
                     <CodeFolderIcon size={18} /> 打开文件夹...
                   </Button>
                 </div>
-                <div
-                  className={"text-sm m-2 pl-2"}
-                  style={{ lineHeight: "2" }}
-                >
-                  <p>
-                    对话文件夹：
-                    <span>
-                      <span className={"text-primary-500"}>
-                        {useSessionStore(
-                          (state) => state.dialogsFolderPath || "未选择",
-                        )}
-                      </span>
-                    </span>
-                  </p>
-                  <p>
-                    资源文件夹：
-                    <span>
-                      <span className={"text-primary-500"}>
-                        {useSessionStore(
-                          (state) => state.assessFolderPath || "未选择",
-                        )}
-                      </span>
-                    </span>
-                  </p>
-                </div>
+                {currentWorkspace && (
+                  <div
+                    className={"text-sm m-2 pl-2"}
+                    style={{ lineHeight: "2" }}
+                  >
+                    <div className="w-full">
+                      对话文件夹：
+                      {currentWorkspace?.dialogsFolderPath || "未选择"}
+                    </div>
+                    <div className="w-full flex items-center">
+                      资源文件夹：
+                      {currentWorkspace?.assessFolderPath || (
+                        <>
+                          <span>未选择</span>
+                          <Tooltip
+                            content="重新扫描文件夹，请按说明创建资源文件夹"
+                            placement="right"
+                          >
+                            <Link
+                              className="cursor-pointer ml-3"
+                              onPress={() =>
+                                traverseDirectory(
+                                  currentWorkspace?.folderHandle,
+                                )
+                              }
+                            >
+                              <RefreshIcon size={16} />
+                            </Link>
+                          </Tooltip>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className={"text-lg font-medium mb-4"}>
                 <div className={"mb-4"}>最近</div>
@@ -150,14 +277,7 @@ export default function IndexPage() {
                       color="primary"
                       size="sm"
                       variant="light"
-                      onPress={() => {
-                        getDirHandle(id).then((folder) => {
-                          if (!folder) return;
-                          requestFolderPermission(folder).then(
-                            (p) => p && selectFolder(folder ?? null),
-                          );
-                        });
-                      }}
+                      onPress={async () => await loadWorkspace(id)}
                     >
                       <CodeFolderIcon size={18} /> {id}
                     </Button>

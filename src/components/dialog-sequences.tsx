@@ -18,7 +18,7 @@ import {
   TrashIcon,
 } from "@/components/icons.tsx";
 import { Color } from "@/components/mc-color.tsx";
-import { useDialogStore, useSessionStore } from "@/components/store.tsx";
+import { useDialogStore, useWorkspaceStore } from "@/components/store.tsx";
 import logger from "@/components/logger.tsx";
 
 export enum DialogType {
@@ -224,8 +224,8 @@ interface ListboxWrapperProps extends HTMLAttributes<HTMLDivElement> {}
 // 对话序列组件
 export const DialogSequences = ({ ...props }: ListboxWrapperProps) => {
   const navigate = useNavigate();
-  const session = useSessionStore();
-  const dialogsFolder = session.dialogsFolder;
+  const workspaceState = useWorkspaceStore();
+  const dialogsFolder = workspaceState.currentWorkspace?.dialogsFolder;
   const [items, setItems] = useState<
     {
       id: string;
@@ -306,7 +306,10 @@ export const DialogSequences = ({ ...props }: ListboxWrapperProps) => {
               if (!find.dialogSequence || find.dialogSequence.fromDB) {
                 await loadDialogData(key as string, find.handle);
               }
-              await session.openTab({ type: "permanent", key: key as string });
+              await workspaceState.openTab({
+                type: "permanent",
+                key: key as string,
+              });
               navigate(`/${key}`);
             }}
           >

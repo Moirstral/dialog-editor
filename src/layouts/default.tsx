@@ -20,22 +20,21 @@ import {
 import { siteConfig } from "@/config/site.ts";
 import { DialogSequences } from "@/components/dialog-sequences.tsx";
 import { InitSpeakers, Speakers } from "@/components/speakers.tsx";
-import { useSessionStore } from "@/components/store.tsx";
-import logger from "@/components/logger.tsx";
+import { useWorkspaceStore } from "@/components/store.tsx";
 
 export default function DefaultLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const sessionStore = useSessionStore();
+  const workspaceState = useWorkspaceStore();
   const navigate = useNavigate();
+  const { loadCurrentWorkspace, currentWorkspace } = useWorkspaceStore();
 
   // 添加侧边栏引用
   const sidebarRef = useRef<HTMLDivElement>(null);
 
-  // 添加窗口大小监听
   useEffect(() => {
-    // 加载会话存储
-    sessionStore.loadSession().then(() => logger.info("Session loaded"));
-
+    // 加载当前工作区
+    loadCurrentWorkspace();
+    // 添加窗口大小监听
     const handleResize = () => {
       // 当屏幕宽度小于某个阈值时自动折叠侧边栏
       if (window.innerWidth < 768) {
@@ -123,7 +122,7 @@ export default function DefaultLayout() {
         </Button>
         <p className="font-bold text-inherit p-5">{siteConfig.name}</p>
         <DialogSequences className="scrollbar-2 scrollbar-auto gutter-both max-w-full max-h-[calc(100vh-8rem)] mx-3 overflow-x-hidden" />
-        {useSessionStore((state) => state.dialogsFolder) && (
+        {currentWorkspace?.dialogsFolder && (
           <ButtonGroup className="w-full max-w-full h-16">
             <Tooltip content="重新加载">
               <Button
@@ -141,7 +140,11 @@ export default function DefaultLayout() {
               className="text-inherit"
               variant="ghost"
               onPress={() => {
-                if (sessionStore.tabs.some((t) => t.type === "new")) {
+                if (
+                  workspaceState.currentWorkspace?.tabs.some(
+                    (t) => t.type === "new",
+                  )
+                ) {
                   addToast({
                     title: "别急，先把刚刚新建的文件保存一下",
                     color: "warning",
