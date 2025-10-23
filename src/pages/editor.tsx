@@ -21,7 +21,11 @@ import { DialogSequence } from "@/components/dialog-sequences.tsx";
 import { Graph } from "@/components/graph.tsx";
 import logger from "@/components/logger.tsx";
 import { FormSwitch } from "@/components/form-switch.tsx";
-import { useDialogStore, useWorkspaceStore } from "@/components/store.tsx";
+import {
+  useDialogStore,
+  useWorkspaceStore,
+  useSessionStore,
+} from "@/components/store.tsx";
 import { DialogOptionCard } from "@/components/dialog-option.tsx";
 
 // 注册 React 节点扩展
@@ -29,6 +33,7 @@ register(ExtensionCategory.NODE, "react", ReactNode);
 
 export default function EditorPage() {
   const workspaceState = useWorkspaceStore();
+  const sessionState = useSessionStore();
   const { id } = useParams<{ id: string }>();
   const dialogStore = useDialogStore();
   const defaultDialogSequence = {
@@ -48,7 +53,7 @@ export default function EditorPage() {
   );
 
   useEffect(() => {
-    if (!sessionStorage.getItem("currentWorkspace")) {
+    if (!sessionState.currentWorkspace) {
       navigate("/");
     }
   }, []);
@@ -182,8 +187,8 @@ export default function EditorPage() {
             ],
           };
           const size = {
-            entry: [400, 200],
-            option: [350, 50],
+            entry: [500, 200],
+            option: [400, 50],
           }[d.data?.type as string] ?? [400, 200];
 
           Object.assign(style, {
@@ -238,7 +243,7 @@ export default function EditorPage() {
   };
 
   return (
-    (sessionStorage.getItem("currentWorkspace") && (
+    (sessionState.currentWorkspace && (
       <div
         key={`title-${dialogSequence.id}`}
         className={"w-full h-full overflow-hidden"}

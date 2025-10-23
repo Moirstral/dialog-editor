@@ -9,6 +9,8 @@ import {
 } from "@heroui/react";
 import { Outlet, useNavigate } from "react-router-dom";
 
+import favicon from "/favicon.svg";
+
 import { Navbar } from "@/components/navbar";
 import {
   DoubleLeftIcon,
@@ -120,7 +122,15 @@ export default function DefaultLayout() {
             <DoubleLeftIcon className="transition-transform duration-300 hover:-translate-x-1" />
           )}
         </Button>
-        <p className="font-bold text-inherit p-5">{siteConfig.name}</p>
+        <div className="font-bold text-inherit p-4 flex items-center justify-center">
+          <img
+            alt="favicon"
+            className="w-8 h-8 inline-block mr-5"
+            src={favicon}
+          />
+          {siteConfig.sortName}
+        </div>
+
         <DialogSequences className="scrollbar-2 scrollbar-auto gutter-both max-w-full max-h-[calc(100vh-8rem)] mx-3 overflow-x-hidden" />
         {currentWorkspace?.dialogsFolder && (
           <ButtonGroup className="w-full max-w-full h-16">

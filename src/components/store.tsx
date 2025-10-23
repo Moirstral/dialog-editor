@@ -94,16 +94,46 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
 
   loadCurrentWorkspace: async () => {
-    const currentState = get();
+    let sessionState = useSessionStore.getState();
 
-    if (currentState.currentWorkspace) return;
-    const sessionWorkSpace = sessionStorage.getItem("currentWorkspace");
+    const sessionWorkSpace = sessionState.currentWorkspace;
 
     if (!sessionWorkSpace) return;
     const currentWorkspace = await get().getWorkspace(sessionWorkSpace);
 
     if (currentWorkspace) {
       set({ currentWorkspace });
+    }
+    // 加载语言文件
+    const assessFolder = currentWorkspace?.assessFolder;
+
+    if (!assessFolder) return;
+    try {
+      const langDirHandle = await assessFolder.getDirectoryHandle("lang");
+
+      logger.info(
+        "Loaded langDirHandle:",
+        langDirHandle,
+        sessionState.translate.zh_cn,
+      );
+      if (langDirHandle && !sessionState.translate.zh_cn) {
+        const zhFileHandle = await langDirHandle.getFileHandle("zh_cn.json");
+        const zhFile = await zhFileHandle.getFile();
+        const zhContent = await zhFile.text();
+
+        logger.info("Loaded langFile:", zhContent);
+        sessionState.setTranslate("zh_cn", JSON.parse(zhContent));
+      }
+      if (langDirHandle && !sessionState.translate["en_us"]) {
+        const enFileHandle = await langDirHandle.getFileHandle("en_us.json");
+        const enFile = await enFileHandle.getFile();
+        const enContent = await enFile.text();
+
+        logger.info("Loaded langFile:", enContent);
+        sessionState.setTranslate("en_us", JSON.parse(enContent));
+      }
+    } catch (e) {
+      logger.warn("Failed to load langFile", e);
     }
   },
 
@@ -135,7 +165,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   // 当前工作区管理
   setCurrentWorkspace: (record: WorkspaceRecord) => {
     set({ currentWorkspace: record });
-    sessionStorage.setItem("currentWorkspace", record.folderName);
+    useSessionStore.getState().setCurrentWorkspace(record.folderName);
+    get().loadCurrentWorkspace();
   },
 
   clearCurrentWorkspace: () => {
@@ -258,5 +289,82 @@ export const useDialogStore = create<DialogStoreState>((set, get) => ({
   deleteDialogSequence: async (id: string) => {
     await db.delete(dialogsStore, id);
     await get().loadDialogSequences();
+  },
+}));
+
+export interface SessionStoreState {
+  currentWorkspace: string | null;
+  setCurrentWorkspace: (workspace: string) => void;
+  lastSelectedNode: { id: string; node: string }[];
+  setLastSelectedNode: (id: string, node: string) => void;
+  getLastSelectedNode: (id: string | undefined) => string | undefined;
+  translate: Record<"zh_cn" | "en_us", Record<string, string> | null>;
+  setTranslate: (
+    lang: "zh_cn" | "en_us",
+    translate: Record<string, string>,
+  ) => void;
+  getTranslate: (key: string) => string;
+}
+export const useSessionStore = create<SessionStoreState>((set, get) => ({
+  currentWorkspace: sessionStorage.getItem("currentWorkspace"),
+  setCurrentWorkspace: (workspace: string) => {
+    sessionStorage.setItem("currentWorkspace", workspace);
+    set({ currentWorkspace: workspace });
+  },
+  lastSelectedNode: (() => {
+    try {
+      const stored = sessionStorage.getItem("lastSelectedNode");
+
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      logger.warn("Failed to parse lastSelectedNode from sessionStorage", e);
+
+      return [];
+    }
+  })(),
+  setLastSelectedNode: (id: string, node: string) => {
+    const currentState = get();
+    const updated = [
+      ...currentState.lastSelectedNode.filter((item) => item.id !== id),
+      { id, node },
+    ];
+
+    sessionStorage.setItem("lastSelectedNode", JSON.stringify(updated));
+    set({ lastSelectedNode: updated });
+  },
+  getLastSelectedNode: (id: string | undefined) => {
+    if (!id) return;
+    const currentState = get();
+    const item = currentState.lastSelectedNode.find((item) => item.id === id);
+
+    return item?.node;
+  },
+  translate: (() => {
+    try {
+      const storedZh = sessionStorage.getItem("translate_zh_cn");
+      const storedEn = sessionStorage.getItem("translate_en_us");
+
+      return {
+        zh_cn: storedZh ? JSON.parse(storedZh) : null,
+        en_us: storedEn ? JSON.parse(storedEn) : null,
+      };
+    } catch (e) {
+      logger.warn("Failed to parse langFile from sessionStorage", e);
+
+      return { zh_cn: null, en_us: null };
+    }
+  })(),
+  setTranslate: (lang, translate) => {
+    sessionStorage.setItem("translate_" + lang, JSON.stringify(translate));
+    set({ translate: { ...get().translate, [lang]: translate } });
+  },
+  getTranslate: (key: string) => {
+    const currentState = get();
+
+    return (
+      currentState.translate.zh_cn?.[key] ||
+      currentState.translate.en_us?.[key] ||
+      key
+    );
   },
 }));

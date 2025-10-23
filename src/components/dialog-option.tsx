@@ -16,7 +16,9 @@ export const DialogOptionCard = ({ data }: { data: any }) => {
 
   return (
     <Card className={`w-full h-full ${className}`.trim()} id={entry.id}>
-      <CardBody>{getText(entry.text)}</CardBody>
+      <CardBody className="text-center overflow-hidden text-ellipsis whitespace-nowrap">
+        {getText(entry.text)}
+      </CardBody>
     </Card>
   );
 };

@@ -12,12 +12,21 @@ import { ThemeSwitch } from "@/components/theme-switch";
 import { GithubIcon, HeartFilledIcon } from "@/components/icons.tsx";
 import { Tabs } from "@/components/tabs.tsx";
 
+import favicon from "/favicon.svg";
+
 export const Navbar = ({ isShowTabs = true }) => {
   return (
     <HeroUINavbar shouldHideOnScroll maxWidth="full">
       <NavbarContent className="basis-1/5 sm:basis-full" justify="start">
         <NavbarBrand className="gap-3 max-w-fit">
-          <p className="font-bold text-inherit">{siteConfig.name}</p>
+          <div className="font-bold text-inherit w-44 flex justify-center items-center">
+            <img
+              alt="favicon"
+              className="w-8 h-8 inline-block mr-5"
+              src={favicon}
+            />
+            {siteConfig.sortName}
+          </div>
         </NavbarBrand>
       </NavbarContent>
 

@@ -25,7 +25,11 @@ import {
   TrashIcon,
 } from "@/components/icons.tsx";
 import { Color } from "@/components/mc-color.tsx";
-import { useDialogStore, useWorkspaceStore } from "@/components/store.tsx";
+import {
+  useDialogStore,
+  useSessionStore,
+  useWorkspaceStore,
+} from "@/components/store.tsx";
 import logger from "@/components/logger.tsx";
 
 export enum DialogType {
@@ -86,10 +90,10 @@ export function getText(
     );
   }
 
-  const textContent = (component?.translate || component?.text || "").replace(
-    /@i/g,
-    "[玩家]",
-  );
+  const textContent = useSessionStore
+    .getState()
+    .getTranslate(component?.translate || component?.text || "")
+    .replace(/@i/g, "[玩家]");
 
   const parts = textContent.split("\n");
 
@@ -120,10 +124,10 @@ export function getPlainText(
     return component.map((item) => getPlainText(item)).join("");
   }
 
-  return (component?.translate || component?.text || "").replace(
-    /@i/g,
-    "[玩家]",
-  );
+  return useSessionStore
+    .getState()
+    .getTranslate(component?.translate || component?.text || "")
+    .replace(/@i/g, "[玩家]");
 }
 
 // 立绘信息接口定义

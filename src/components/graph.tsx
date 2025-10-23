@@ -18,6 +18,7 @@ import {
 } from "@/components/icons.tsx";
 import { DialogEntry, getPlainText } from "@/components/dialog-sequences.tsx";
 import logger from "@/components/logger.tsx";
+import { useSessionStore } from "@/components/store.tsx";
 
 export interface GraphProps {
   options: GraphOptions;
@@ -27,6 +28,7 @@ export interface GraphProps {
 }
 
 export const Graph = (props: GraphProps) => {
+  const sessionState = useSessionStore.getState();
   const { options, id: graphId, onRender, onDestroy } = props;
   const graphRef = useRef<G6Graph>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -37,10 +39,16 @@ export const Graph = (props: GraphProps) => {
 
     if (!graph) return;
     logger.info("selectedNode", nodeId);
-    await graph.focusElement(nodeId);
-    graph.getNodeData().forEach((node) => {
-      graph.setElementState(node.id, (nodeId === node.id && "selected") || "");
-    });
+    try {
+      await graph.focusElement(nodeId);
+      nodes.forEach((node) => {
+        graph
+          .setElementState(node.id, (nodeId === node.id && "selected") || "")
+          .catch((error) => logger.warn(error));
+      });
+    } catch (error) {
+      logger.warn(error);
+    }
   };
 
   useEffect(() => {
@@ -76,8 +84,8 @@ export const Graph = (props: GraphProps) => {
       if (!graph || graph.destroyed) return;
       const nodes = graph?.getElementDataByState("node", "selected") || [];
 
-      if (nodes.length > 0 && nodes[0].id) {
-        sessionStorage.setItem("lastSelectedNode-" + graphId, nodes[0].id);
+      if (graphId && nodes.length > 0 && nodes[0].id) {
+        sessionState.setLastSelectedNode(graphId, nodes[0].id);
       }
     });
     // 节点双击事件
@@ -107,6 +115,7 @@ export const Graph = (props: GraphProps) => {
       .render()
       .then(() => {
         onRender?.(graph);
+        setNodes(graph.getNodeData());
       })
       .catch((error) => logger.warn(error));
   }, [options]);
@@ -117,8 +126,7 @@ export const Graph = (props: GraphProps) => {
     if (!graph || graph.destroyed || !nodes || nodes.length === 0) return;
 
     const lastSelectedNode =
-      sessionStorage.getItem("lastSelectedNode-" + graphId) ||
-      nodes.slice(-1)[0].id;
+      sessionState.getLastSelectedNode(graphId) || nodes.slice(-1)[0].id;
 
     logger.info("lastSelectedNode", lastSelectedNode);
     selectedNode(lastSelectedNode);
@@ -133,7 +141,9 @@ export const Graph = (props: GraphProps) => {
         id={props.id}
       />
       <aside
-        className={"bottom-14 right-2 text-default-500"}
+        className={
+          "bottom-14 right-2 text-default-500 border border-default-100"
+        }
         style={{
           position: "fixed",
         }}
