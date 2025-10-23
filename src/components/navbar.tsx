@@ -22,7 +22,15 @@ export const Navbar = ({ isShowTabs = true }) => {
       </NavbarContent>
 
       <NavbarContent className="basis-1/5 sm:basis-full" justify="end">
-        <Link isExternal href={siteConfig.links.github} title="GitHub">
+        <Link
+          isExternal
+          href={siteConfig.links.github[0]}
+          title="GitHub"
+          onContextMenu={(e) => {
+            e.preventDefault();
+            window.open(siteConfig.links.github.slice(-1)[0], "_blank");
+          }}
+        >
           <GithubIcon className="text-default-500" />
         </Link>
         <ThemeSwitch />

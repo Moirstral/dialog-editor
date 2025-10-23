@@ -4,7 +4,10 @@ export const siteConfig = {
   name: "TraceDialog 对话编辑器",
   description: "为 TraceDialog 提供的可视化对话编辑器",
   links: {
-    github: "https://github.com/Moirstral/TraceDialog",
+    github: [
+      "https://github.com/Moirstral/TraceDialog",
+      "https://github.com/Moirstral/dialog-editor",
+    ],
   },
   poweredBy: [
     { name: "Vite", desc: "开发构建工具", url: "https://vitejs.dev" },
