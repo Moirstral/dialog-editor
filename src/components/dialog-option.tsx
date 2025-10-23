@@ -1,8 +1,8 @@
-import { Card, CardBody, ScrollShadow } from "@heroui/react";
+import { Card, CardBody } from "@heroui/react";
 
 import { DialogEntry, getText } from "@/components/dialog-sequences.tsx";
 
-export const DialogEntryCard = ({ data }: { data: any }) => {
+export const DialogOptionCard = ({ data }: { data: any }) => {
   const entry: DialogEntry = data;
 
   const isHovered = data.states?.includes("active");
@@ -16,15 +16,7 @@ export const DialogEntryCard = ({ data }: { data: any }) => {
 
   return (
     <Card className={`w-full h-full ${className}`.trim()} id={entry.id}>
-      <CardBody>
-        <div className="my-2 mx-1">{getText(entry.speaker)}</div>
-        <ScrollShadow
-          className={"scrollbar-2 scrollbar-auto gutter-both"}
-          onWheel={(e) => e.stopPropagation()}
-        >
-          {getText(entry.text)}
-        </ScrollShadow>
-      </CardBody>
+      <CardBody>{getText(entry.text)}</CardBody>
     </Card>
   );
 };

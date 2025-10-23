@@ -6,7 +6,14 @@ import {
   PopoverTrigger,
   ScrollShadow,
 } from "@heroui/react";
-import { HTMLAttributes, JSX, ReactNode, useEffect, useState } from "react";
+import {
+  Fragment,
+  HTMLAttributes,
+  JSX,
+  ReactNode,
+  useEffect,
+  useState,
+} from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -63,7 +70,12 @@ export interface Component {
   translate?: string;
   color?: string;
 }
-export function getText(component?: Component | Component[]): JSX.Element {
+export function getText(
+  component?: Component | Component[] | string,
+): JSX.Element {
+  if (typeof component === "string") {
+    return <>{component}</>;
+  }
   if (Array.isArray(component)) {
     return (
       <>
@@ -74,10 +86,43 @@ export function getText(component?: Component | Component[]): JSX.Element {
     );
   }
 
+  const textContent = (component?.translate || component?.text || "").replace(
+    /@i/g,
+    "[玩家]",
+  );
+
+  const parts = textContent.split("\n");
+
   return (
     <span style={{ color: Color(component?.color ?? "") }}>
-      {component?.translate || component?.text || ""}
+      {parts.map((part, index) => (
+        <Fragment key={index}>
+          {index > 0 && <br />}
+          {part}
+        </Fragment>
+      ))}
     </span>
+  );
+}
+
+/**
+ * 获取组件的纯文本内容，不包含任何HTML标签或样式
+ * @param component 文本组件
+ * @returns 纯文本内容
+ */
+export function getPlainText(
+  component?: Component | Component[] | string,
+): string {
+  if (typeof component === "string") {
+    return component;
+  }
+  if (Array.isArray(component)) {
+    return component.map((item) => getPlainText(item)).join("");
+  }
+
+  return (component?.translate || component?.text || "").replace(
+    /@i/g,
+    "[玩家]",
   );
 }
 
@@ -96,7 +141,7 @@ export interface Portrait {
 }
 
 // 对话框选项接口定义
-export interface Options {
+export interface Option {
   // 选项显示的文本
   text: Component;
   // 文本对齐 LEFT, RIGHT, CENTER, 默认为 CENTER
@@ -158,7 +203,7 @@ export interface DialogEntry {
   // 下一条对话的ID，如果为空则按顺序显示下一条
   next?: string;
   // 可选的对话选项
-  options?: Options;
+  options?: Option[] | Option[][];
   // 该对话条目完成后执行的命令
   command?: string[];
   // 是否允许跳过此对话条目

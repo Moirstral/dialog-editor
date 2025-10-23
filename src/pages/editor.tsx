@@ -1,5 +1,4 @@
-import type { GraphOptions } from "@antv/g6";
-
+import { ExtensionCategory, GraphOptions, register } from "@antv/g6";
 import { useEffect, useMemo, useState } from "react";
 import {
   Button,
@@ -15,6 +14,7 @@ import {
   Textarea,
 } from "@heroui/react";
 import { useNavigate, useParams } from "react-router-dom";
+import { ReactNode } from "@antv/g6-extension-react";
 
 import { DialogEntryCard } from "@/components/dialog-entry.tsx";
 import { DialogSequence } from "@/components/dialog-sequences.tsx";
@@ -22,6 +22,10 @@ import { Graph } from "@/components/graph.tsx";
 import logger from "@/components/logger.tsx";
 import { FormSwitch } from "@/components/form-switch.tsx";
 import { useDialogStore, useWorkspaceStore } from "@/components/store.tsx";
+import { DialogOptionCard } from "@/components/dialog-option.tsx";
+
+// 注册 React 节点扩展
+register(ExtensionCategory.NODE, "react", ReactNode);
 
 export default function EditorPage() {
   const workspaceState = useWorkspaceStore();
@@ -64,53 +68,128 @@ export default function EditorPage() {
       });
   }, [id, dialogStore]);
 
-  const data = useMemo(
-    () => ({
-      nodes: dialogSequence.entries.map((entry) => ({
-        ...entry,
-      })),
-      edges: [
-        // 创建条目之间的连接边
-        ...(dialogSequence.entries
-          ?.map((entry, index) => {
-            // 如果不是最后一个条目，连接到下一个条目
-            if (index < dialogSequence.entries.length - 1) {
-              return {
-                source: entry.id,
-                target: dialogSequence.entries[index + 1].id,
-              };
-            }
+  function hashCode(content: string) {
+    let hash = 0;
 
-            // 如果是最后一个条目，可以选择不连接或连接到特定节点
-            return null;
-          })
-          .filter(Boolean) as Array<{ source: string; target: string }>),
-      ].filter((edge) => edge.source && edge.target), // 过滤掉无效边
-    }),
-    [dialogSequence.entries],
-  );
+    for (let i = 0; i < content.length; i++) {
+      const char = content.charCodeAt(i);
+
+      hash = (hash << 5) - hash + char;
+      hash |= 0; // Convert to 32bit integer
+    }
+
+    return hash;
+  }
+
+  const data = useMemo(() => {
+    const nodes: Array<{ id: string; combo?: string; data?: any }> = [];
+    const edges: Array<{ source: string; target: string; data?: any }> = [];
+    const combos: Array<{
+      id: string;
+      type?: string;
+      style?: any;
+      data?: any;
+    }> = [];
+
+    dialogSequence.entries.forEach((entry, index) => {
+      const options = entry.options?.flat().map((option, i) => ({
+        ...option,
+        id: `${entry.id}-opt-${i}`,
+      }));
+      const comboId = `${entry.id}-combo`;
+
+      // 添加对话框条目节点
+      nodes.push({
+        ...entry,
+        data: {
+          type: "entry",
+        },
+        combo: (options && options.length > 0 && comboId) || undefined,
+      });
+
+      if (entry.next) {
+        // 如果有下一个条目，则添加连接边
+        edges.push({
+          source: entry.id,
+          target: entry.next,
+        });
+      } else if (options && options.length > 0) {
+        // 如果有选项，则添加选项节点，并创建组合
+        const hash = hashCode(comboId) % 360;
+        const combo = {
+          id: comboId,
+          type: "rect",
+          style: {
+            fill: `hsl(${hash}, 70%, 85%)`,
+            stroke: `hsl(${hash}, 70%, 80%)`,
+            padding: 35,
+            radius: 35,
+          },
+        };
+
+        combos.push(combo);
+        options.forEach((option) => {
+          nodes.push({
+            ...option,
+            data: {
+              type: "option",
+            },
+            combo: comboId,
+          });
+          edges.push({
+            source: entry.id,
+            target: option.id,
+          });
+          option.target &&
+            edges.push({
+              source: option.id,
+              target: option.target,
+            });
+        });
+      } else if (index < dialogSequence.entries.length - 1) {
+        // 如果没有选项，且不是最后一个条目，则添加默认的连接边
+        edges.push({
+          source: entry.id,
+          target: dialogSequence.entries[index + 1].id,
+        });
+      }
+    });
+
+    return {
+      nodes,
+      edges,
+      combos,
+    };
+  }, [dialogSequence.entries]);
 
   const options = useMemo<GraphOptions>(
     () => ({
       data,
       node: {
-        type: "dialog-entry",
+        type: "react",
         style: (d) => {
           const style = {
-            component: <DialogEntryCard data={d} />,
+            component: {
+              entry: <DialogEntryCard data={d} />,
+              option: <DialogOptionCard data={d} />,
+            }[d.data?.type as string] ?? <></>,
             portLinkToCenter: true,
             ports: [
               { placement: "top" as const },
-              { placement: "right" as const },
+              // { placement: "right" as const },
               { placement: "bottom" as const },
-              { placement: "left" as const },
+              // { placement: "left" as const },
             ],
           };
+          const size = {
+            entry: [400, 200],
+            option: [350, 50],
+          }[d.data?.type as string] ?? [400, 200];
 
           Object.assign(style, {
-            size: [400, 200],
-            dx: -200,
-            dy: -100,
+            size,
+            dx: -size[0] / 2,
+            dy: -size[1] / 2,
           });
 
           return style;
