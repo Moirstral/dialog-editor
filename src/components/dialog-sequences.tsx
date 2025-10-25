@@ -147,13 +147,13 @@ export interface Portrait {
 // 对话框选项接口定义
 export interface Option {
   // 选项显示的文本
-  text: Component;
+  text: Component[] | Component | string;
   // 文本对齐 LEFT, RIGHT, CENTER, 默认为 CENTER
   text_align?: Position;
   // 背景图片 path
   background?: string;
   // 提示文本
-  tooltips?: Component;
+  tooltips?: Component[] | Component | string;
   // 选择此选项后跳转到的对话ID
   target?: string;
   // 选择该选项后执行的命令
@@ -201,7 +201,7 @@ export interface DialogEntry {
   // 对话文本内容，可以是字符串或文本组件JSON对象
   text: Component[] | Component | string;
   // 说话者名称，可以是字符串或文本组件JSON对象
-  speaker?: Component;
+  speaker?: Component[] | Component | string;
   // 立绘信息列表
   portraits?: Portrait[];
   // 下一条对话的ID，如果为空则按顺序显示下一条
@@ -334,7 +334,7 @@ export const DialogSequences = ({ ...props }: ListboxWrapperProps) => {
 
     logger.info("Load dialog sequence:", dialogSequence);
     setItems(updatedItems);
-    await useDialogStore.getState().addDialogSequence(dialogSequence);
+    await useDialogStore.getState().addOrUpdateDialogSequence(dialogSequence);
   };
 
   return (

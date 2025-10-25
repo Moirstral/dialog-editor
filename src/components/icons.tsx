@@ -2,35 +2,6 @@ import * as React from "react";
 
 import { IconSvgProps } from "@/types";
 
-export const ChinaIcon: React.FC<IconSvgProps> = ({
-  size = 36,
-  width,
-  height,
-  ...props
-}) => {
-  return (
-    <svg
-      height={size || height}
-      viewBox="0 0 900 600"
-      width={size || width}
-      {...props}
-    >
-      <path d="M0 0h900v600H0" fill="#EE1C25" />
-      <g transform="translate(150,150) scale(3)">
-        <path
-          d="M0,-30 17.63355,24.27051 -28.53171,-9.27051H28.53171L-17.63355,24.27051"
-          fill="#FF0"
-          id="s"
-        />
-      </g>
-      <use href="#s" transform="translate(300,60) rotate(23.036243)" />
-      <use href="#s" transform="translate(360,120) rotate(45.869898)" />
-      <use href="#s" transform="translate(360,210) rotate(69.945396)" />
-      <use href="#s" transform="translate(300,270) rotate(20.659808)" />
-    </svg>
-  );
-};
-
 export const GithubIcon: React.FC<IconSvgProps> = ({
   size = 24,
   width,

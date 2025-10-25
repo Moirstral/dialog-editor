@@ -1,23 +1,30 @@
 import { ExtensionCategory, GraphOptions, register } from "@antv/g6";
 import { useEffect, useMemo, useState } from "react";
 import {
+  addToast,
   Button,
   Card,
   CardBody,
   Form,
   Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
   ScrollShadow,
   Select,
   SelectItem,
   Tab,
   Tabs,
   Textarea,
+  useDisclosure,
 } from "@heroui/react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ReactNode } from "@antv/g6-extension-react";
 
 import { DialogEntryCard } from "@/components/dialog-entry.tsx";
-import { DialogSequence } from "@/components/dialog-sequences.tsx";
+import { DialogSequence, Option } from "@/components/dialog-sequences.tsx";
 import { Graph } from "@/components/graph.tsx";
 import logger from "@/components/logger.tsx";
 import { FormSwitch } from "@/components/form-switch.tsx";
@@ -27,6 +34,15 @@ import {
   useSessionStore,
 } from "@/components/store.tsx";
 import { DialogOptionCard } from "@/components/dialog-option.tsx";
+import {
+  getLanguageCode,
+  getMinecraftLanguageCode,
+  Language,
+  MinecraftLanguageCode,
+  writeDialogFile,
+  writeLanguageFile,
+} from "@/components/utils.tsx";
+import { FlagIcon } from "@/components/flag.tsx";
 
 // 注册 React 节点扩展
 register(ExtensionCategory.NODE, "react", ReactNode);
@@ -47,9 +63,15 @@ export default function EditorPage() {
     ],
   };
   const navigate = useNavigate();
-
   const [dialogSequence, setDialogSequence] = useState<DialogSequence>(
     defaultDialogSequence,
+  );
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  // 当前文件是否需要有固定文本
+  const [isFixedText, setIsFixedText] = useState(false);
+  // 翻译后的语言
+  const [translatedLang, setTranslatedLang] = useState<MinecraftLanguageCode>(
+    getMinecraftLanguageCode(),
   );
 
   useEffect(() => {
@@ -72,6 +94,10 @@ export default function EditorPage() {
         }
       });
   }, [id, dialogStore]);
+
+  useEffect(() => {
+    isFixedText && onOpen();
+  }, [isFixedText]);
 
   function hashCode(content: string) {
     let hash = 0;
@@ -101,7 +127,16 @@ export default function EditorPage() {
         ...option,
         id: `${entry.id}-opt-${i}`,
       }));
-      const comboId = `${entry.id}-combo`;
+      const comboId = options && `${entry.id}-combo`;
+
+      // 如果说话者为字符串，则添加到待翻译列表
+      if (entry.speaker && typeof entry.speaker === "string") {
+        setIsFixedText(true);
+      }
+      // 如果文本为字符串，则添加到待翻译列表
+      if (entry.text && typeof entry.text === "string") {
+        setIsFixedText(true);
+      }
 
       // 添加对话框条目节点
       nodes.push({
@@ -109,7 +144,7 @@ export default function EditorPage() {
         data: {
           type: "entry",
         },
-        combo: (options && options.length > 0 && comboId) || undefined,
+        combo: comboId || undefined,
       });
 
       if (entry.next) {
@@ -120,9 +155,9 @@ export default function EditorPage() {
         });
       } else if (options && options.length > 0) {
         // 如果有选项，则添加选项节点，并创建组合
-        const hash = hashCode(comboId) % 360;
+        const hash = hashCode(comboId!) % 360;
         const combo = {
-          id: comboId,
+          id: comboId!,
           type: "rect",
           style: {
             fill: `hsl(${hash}, 70%, 85%)`,
@@ -134,6 +169,14 @@ export default function EditorPage() {
 
         combos.push(combo);
         options.forEach((option) => {
+          // 如果选项的文本为字符串，则添加到待翻译列表
+          if (option.text && typeof option.text === "string") {
+            setIsFixedText(true);
+          }
+          // 如果选项的提示文本为字符串，则添加到待翻译列表
+          if (option.tooltips && typeof option.tooltips === "string") {
+            setIsFixedText(true);
+          }
           nodes.push({
             ...option,
             data: {
@@ -242,6 +285,95 @@ export default function EditorPage() {
     logger.info("Dialog Sequence:", dialogSequenceMarged);
   };
 
+  function convertToLanguageFile() {
+    const toBeSaved = { ...dialogSequence };
+    const toBeTranslated: Record<string, string> = {};
+
+    toBeSaved.entries.forEach((entry) => {
+      if (entry.speaker && typeof entry.speaker === "string") {
+        const key = `dialog.speaker.${entry.speaker}`;
+
+        toBeTranslated[key] = entry.speaker;
+        entry.speaker = {
+          translate: key,
+        };
+      }
+      if (entry.text && typeof entry.text === "string") {
+        const key = `dialog.${dialogSequence.id}.entry.${entry.id}.text`;
+
+        toBeTranslated[key] = entry.text;
+        entry.text = {
+          translate: key,
+        };
+      }
+      function convert(option: Option, count: number) {
+        // 如果选项的文本为字符串，则添加到待翻译列表
+        if (option.text && typeof option.text === "string") {
+          const key = `dialog.${dialogSequence.id}.entry.${entry.id}.options.${count}`;
+
+          toBeTranslated[key] = option.text;
+          option.text = {
+            translate: key,
+          };
+        }
+        // 如果选项的提示文本为字符串，则添加到待翻译列表
+        if (option.tooltips && typeof option.tooltips === "string") {
+          const key = `dialog.${dialogSequence.id}.entry.${entry.id}.options.${count}.tooltips`;
+
+          toBeTranslated[key] = option.tooltips;
+          option.tooltips = {
+            translate: key,
+          };
+        }
+      }
+      let count = 0;
+
+      entry.options?.forEach((option) => {
+        if (Array.isArray(option)) {
+          option.forEach((item) => {
+            convert(item, count++);
+          });
+        } else {
+          convert(option, count++);
+        }
+      });
+    });
+
+    writeLanguageFile(translatedLang, toBeTranslated)
+      .then((lang) => {
+        sessionState.setTranslate(translatedLang, lang);
+
+        // 更新对话文件
+        toBeSaved &&
+          writeDialogFile(dialogSequence.id, toBeSaved)
+            .then(() => {
+              addToast({
+                color: "success",
+                title: "自动转换完成",
+                description: "如果显示异常或乱码，请刷新页面。",
+              });
+              dialogStore
+                .addOrUpdateDialogSequence(toBeSaved)
+                .then(() => setDialogSequence(toBeSaved))
+                .catch(() => dialogStore.deleteDialogSequence(toBeSaved.id));
+            })
+            .catch(() =>
+              addToast({
+                color: "warning",
+                title: "写入失败",
+                description: dialogSequence.id + ".json 文件写入失败",
+              }),
+            );
+      })
+      .catch(() =>
+        addToast({
+          color: "warning",
+          title: "写入失败",
+          description: translatedLang + ".json 文件写入失败",
+        }),
+      );
+  }
+
   return (
     (sessionState.currentWorkspace && (
       <div
@@ -348,6 +480,100 @@ export default function EditorPage() {
           <Tab key="sequence" title="对话序列" />
         </Tabs>
         <Graph id={`dialog-entries-${dialogSequence.id}`} options={options} />
+        <Modal
+          isDismissable={false}
+          isOpen={isOpen}
+          onOpenChange={onOpenChange}
+        >
+          <ModalContent>
+            {(onClose) => (
+              <>
+                <ModalHeader>自动转换</ModalHeader>
+                <ModalBody>
+                  当前文件存在固定文本，是否自动转换为语言文件？
+                  <Select
+                    defaultSelectedKeys={[getLanguageCode()]}
+                    label="将语言文件保存为"
+                    name="language"
+                    renderValue={(items) => {
+                      return items.map((item) => (
+                        <div key={item.key} className="flex items-center gap-2">
+                          <span className="text-small">{item.textValue}</span>
+                          <span className="text-tiny text-default-400">
+                            {getMinecraftLanguageCode(
+                              item.key as keyof typeof Language,
+                            )}
+                            .json
+                          </span>
+                          <div className={"-mt-2 absolute right-12 top-4"}>
+                            <FlagIcon
+                              lang={item.key as keyof typeof Language}
+                            />
+                          </div>
+                        </div>
+                      ));
+                    }}
+                    variant="underlined"
+                    onSelectionChange={(selection) => {
+                      setTranslatedLang(
+                        MinecraftLanguageCode[
+                          selection.currentKey as keyof typeof MinecraftLanguageCode
+                        ],
+                      );
+                    }}
+                  >
+                    {Object.entries(Language).map(
+                      ([languageCode, language]) => (
+                        <SelectItem key={languageCode} textValue={language}>
+                          <div className="flex gap-2 items-center">
+                            <FlagIcon
+                              lang={languageCode as keyof typeof Language}
+                            />
+                            <div className="flex flex-col">
+                              <span className="text-small">{language}</span>
+                              <span className="text-tiny text-default-400">
+                                {
+                                  MinecraftLanguageCode[
+                                    languageCode as keyof typeof MinecraftLanguageCode
+                                  ]
+                                }
+                                .json
+                              </span>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      ),
+                    )}
+                  </Select>
+                </ModalBody>
+                <ModalFooter>
+                  <Button
+                    color="warning"
+                    variant="light"
+                    onPress={() => {
+                      // TODO
+                      onClose();
+                    }}
+                  >
+                    不再提示
+                  </Button>
+                  <Button variant="light" onPress={onClose}>
+                    取消
+                  </Button>
+                  <Button
+                    color="primary"
+                    onPress={() => {
+                      convertToLanguageFile();
+                      onClose();
+                    }}
+                  >
+                    保存
+                  </Button>
+                </ModalFooter>
+              </>
+            )}
+          </ModalContent>
+        </Modal>
       </div>
     )) || <></>
   );

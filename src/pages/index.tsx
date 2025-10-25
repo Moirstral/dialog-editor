@@ -299,11 +299,11 @@ export default function IndexPage() {
                   <p>正确的文件夹结构为：</p>
                   <ul className={"text-sm list-disc pt-2 pl-5 space-y-2"}>
                     <li>data\dialog\dialogs</li>
-                    <li>assess\dialogs\lang</li>
-                    <li>assess\dialogs\textures\backgrounds</li>
-                    <li>assess\dialogs\textures\dialog_background</li>
-                    <li>assess\dialogs\textures\portraits</li>
-                    <li>assess\dialogs\textures\textures\gui\sprites</li>
+                    <li>assess\dialog\lang</li>
+                    <li>assess\dialog\textures\backgrounds</li>
+                    <li>assess\dialog\textures\dialog_background</li>
+                    <li>assess\dialog\textures\portraits</li>
+                    <li>assess\dialog\textures\textures\gui\sprites</li>
                   </ul>
                 </li>
               </ul>

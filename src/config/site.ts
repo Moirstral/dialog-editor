@@ -2,7 +2,7 @@ export type SiteConfig = typeof siteConfig;
 
 export const siteConfig = {
   name: "TraceDialog 对话编辑器",
-  sortName: "TD 对话编辑器",
+  sortName: "对话编辑器",
   description: "为 TraceDialog 提供的可视化对话编辑器",
   links: {
     github: [

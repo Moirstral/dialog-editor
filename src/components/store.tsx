@@ -5,6 +5,10 @@ import { addToast } from "@heroui/react";
 import { DialogSequence } from "@/components/dialog-sequences.tsx";
 import logger from "@/components/logger.tsx";
 import { TabItem } from "@/components/tabs.tsx";
+import {
+  getMinecraftLanguageCode,
+  MinecraftLanguageCode,
+} from "@/components/utils.tsx";
 
 const workspaceStore = "workspace-store";
 const dialogsStore = "dialogs-store";
@@ -110,27 +114,37 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     if (!assessFolder) return;
     try {
       const langDirHandle = await assessFolder.getDirectoryHandle("lang");
+      const languageCode = getMinecraftLanguageCode();
 
-      logger.info(
-        "Loaded langDirHandle:",
-        langDirHandle,
-        sessionState.translate.zh_cn,
-      );
-      if (langDirHandle && !sessionState.translate.zh_cn) {
-        const zhFileHandle = await langDirHandle.getFileHandle("zh_cn.json");
-        const zhFile = await zhFileHandle.getFile();
-        const zhContent = await zhFile.text();
+      logger.info("languageCode:", languageCode);
+      if (langDirHandle && !sessionState.translate.en_us) {
+        try {
+          const enFileHandle = await langDirHandle.getFileHandle("en_us.json");
+          const enFile = await enFileHandle.getFile();
+          const enContent = await enFile.text();
 
-        logger.info("Loaded langFile:", zhContent);
-        sessionState.setTranslate("zh_cn", JSON.parse(zhContent));
+          logger.info("Loaded en_us:", enContent);
+          sessionState.setTranslate(
+            MinecraftLanguageCode["en-US"],
+            JSON.parse(enContent),
+          );
+        } catch (e) {
+          logger.warn(e);
+        }
       }
-      if (langDirHandle && !sessionState.translate["en_us"]) {
-        const enFileHandle = await langDirHandle.getFileHandle("en_us.json");
-        const enFile = await enFileHandle.getFile();
-        const enContent = await enFile.text();
+      if (langDirHandle && !sessionState.translate[languageCode]) {
+        try {
+          const langFileHandle = await langDirHandle.getFileHandle(
+            `${languageCode}.json`,
+          );
+          const langFile = await langFileHandle.getFile();
+          const langContent = await langFile.text();
 
-        logger.info("Loaded langFile:", enContent);
-        sessionState.setTranslate("en_us", JSON.parse(enContent));
+          logger.info("Loaded langFile:", langContent);
+          sessionState.setTranslate(languageCode, JSON.parse(langContent));
+        } catch (e) {
+          logger.warn(e);
+        }
       }
     } catch (e) {
       logger.warn("Failed to load langFile", e);
@@ -264,7 +278,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 export interface DialogStoreState {
   dialogSequences: DialogSequence[];
   loadDialogSequences: () => Promise<void>;
-  addDialogSequence: (dialog: DialogSequence) => Promise<void>;
+  addOrUpdateDialogSequence: (dialog: DialogSequence) => Promise<void>;
   getDialogSequence: (id: string) => Promise<DialogSequence>;
   deleteDialogSequence: (id: string) => Promise<void>;
 }
@@ -279,7 +293,7 @@ export const useDialogStore = create<DialogStoreState>((set, get) => ({
     set({ dialogSequences: allEntries });
   },
 
-  addDialogSequence: async (dialog: DialogSequence) => {
+  addOrUpdateDialogSequence: async (dialog: DialogSequence) => {
     await db.put(dialogsStore, dialog, dialog.id);
     await get().loadDialogSequences();
   },
@@ -298,9 +312,9 @@ export interface SessionStoreState {
   lastSelectedNode: { id: string; node: string }[];
   setLastSelectedNode: (id: string, node: string) => void;
   getLastSelectedNode: (id: string | undefined) => string | undefined;
-  translate: Record<"zh_cn" | "en_us", Record<string, string> | null>;
+  translate: Record<MinecraftLanguageCode, Record<string, string> | undefined>;
   setTranslate: (
-    lang: "zh_cn" | "en_us",
+    lang: MinecraftLanguageCode,
     translate: Record<string, string>,
   ) => void;
   getTranslate: (key: string) => string;
@@ -339,20 +353,32 @@ export const useSessionStore = create<SessionStoreState>((set, get) => ({
 
     return item?.node;
   },
-  translate: (() => {
-    try {
-      const storedZh = sessionStorage.getItem("translate_zh_cn");
-      const storedEn = sessionStorage.getItem("translate_en_us");
+  translate: ((): Record<
+    MinecraftLanguageCode,
+    Record<string, string> | undefined
+  > => {
+    const allLanguages = Object.fromEntries(
+      Object.values(MinecraftLanguageCode).map((value) => [value, undefined]),
+    );
 
-      return {
-        zh_cn: storedZh ? JSON.parse(storedZh) : null,
-        en_us: storedEn ? JSON.parse(storedEn) : null,
-      };
+    try {
+      const storedEn = sessionStorage.getItem("translate_en_us");
+      const storedCurrent = sessionStorage.getItem(
+        "translate_" + getMinecraftLanguageCode(),
+      );
+
+      logger.info("storedCurrent:", storedCurrent);
+      if (storedEn) allLanguages.en_us = JSON.parse(storedEn) || undefined;
+      if (storedCurrent)
+        allLanguages[storedCurrent] = JSON.parse(storedCurrent) || undefined;
     } catch (e) {
       logger.warn("Failed to parse langFile from sessionStorage", e);
-
-      return { zh_cn: null, en_us: null };
     }
+
+    return allLanguages as Record<
+      MinecraftLanguageCode,
+      Record<string, string> | undefined
+    >;
   })(),
   setTranslate: (lang, translate) => {
     sessionStorage.setItem("translate_" + lang, JSON.stringify(translate));
@@ -362,7 +388,7 @@ export const useSessionStore = create<SessionStoreState>((set, get) => ({
     const currentState = get();
 
     return (
-      currentState.translate.zh_cn?.[key] ||
+      currentState.translate[getMinecraftLanguageCode()]?.[key] ||
       currentState.translate.en_us?.[key] ||
       key
     );
