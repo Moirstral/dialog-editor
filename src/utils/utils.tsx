@@ -150,6 +150,11 @@ export const writeLanguageFile = async (
   return mergedData;
 };
 
+/**
+ * 写入对话文件
+ * @param id 对话文件的唯一标识符
+ * @param dialogSequence 要写入的对话序列
+ */
 export const writeDialogFile = async (
   id: string,
   dialogSequence: DialogSequence,

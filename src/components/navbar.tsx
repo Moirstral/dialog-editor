@@ -20,12 +20,14 @@ export const Navbar = ({ isShowTabs = true }) => {
       <NavbarContent className="basis-1/5 sm:basis-full" justify="start">
         <NavbarBrand className="gap-3 max-w-fit">
           <div className="font-bold text-inherit w-44 flex justify-center items-center">
-            <img
-              alt="favicon"
-              className="w-8 h-8 inline-block mr-5"
-              src={favicon}
-            />
-            {siteConfig.sortName}
+            <Link color={"foreground"} href={"/"}>
+              <img
+                alt="favicon"
+                className="w-8 h-8 inline-block mr-5"
+                src={favicon}
+              />
+              {siteConfig.sortName}
+            </Link>
           </div>
         </NavbarBrand>
       </NavbarContent>
@@ -58,7 +60,7 @@ export const Navbar = ({ isShowTabs = true }) => {
                   href={item.url}
                   title={item.name}
                 >
-                  <p className="text-primary text-right w-24 mr-2">
+                  <p className="text-primary text-right w-24 mr-2 font-mono">
                     {item.name}
                   </p>
                   <p className="text-default-500">{item.desc}</p>

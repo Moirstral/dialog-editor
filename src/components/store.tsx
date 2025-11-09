@@ -8,7 +8,7 @@ import { TabItem } from "@/components/tabs.tsx";
 import {
   getMinecraftLanguageCode,
   MinecraftLanguageCode,
-} from "@/components/utils.tsx";
+} from "@/utils/utils.tsx";
 
 const workspaceStore = "workspace-store";
 const dialogsStore = "dialogs-store";
@@ -31,7 +31,7 @@ const db = await openDB("tdeditor-db", 2510231510, {
 });
 
 // 工作区记录接口
-interface WorkspaceRecord {
+export interface WorkspaceRecord {
   folderName: string;
   folderHandle: FileSystemDirectoryHandle;
   lastAccessed: number;
@@ -367,7 +367,6 @@ export const useSessionStore = create<SessionStoreState>((set, get) => ({
         "translate_" + getMinecraftLanguageCode(),
       );
 
-      logger.info("storedCurrent:", storedCurrent);
       if (storedEn) allLanguages.en_us = JSON.parse(storedEn) || undefined;
       if (storedCurrent)
         allLanguages[storedCurrent] = JSON.parse(storedCurrent) || undefined;
@@ -392,5 +391,126 @@ export const useSessionStore = create<SessionStoreState>((set, get) => ({
       currentState.translate.en_us?.[key] ||
       key
     );
+  },
+}));
+
+interface LocalStoreState {
+  editorDisplaysSourceCode: boolean;
+  toggleEditorDisplaysSourceCode: (value?: boolean) => void;
+  colorPickerColors: string[];
+  addColorPickerColor: (color: string) => void;
+  colorPickerGradients: string[];
+  addColorPickerGradient: (gradient: string) => void;
+}
+export const useLocalStore = create<LocalStoreState>((set, get) => ({
+  editorDisplaysSourceCode: (() => {
+    try {
+      const stored = localStorage.getItem("editorDisplaysSourceCode");
+
+      return stored === "true";
+    } catch {
+      return false;
+    }
+  })(),
+  toggleEditorDisplaysSourceCode: (value?: boolean) => {
+    let v: boolean;
+
+    logger.info("toggleEditorDisplaysSourceCode", value);
+    if (value === undefined) {
+      v = !get().editorDisplaysSourceCode;
+    } else {
+      v = value;
+    }
+    localStorage.setItem("editorDisplaysSourceCode", String(v));
+    set({ editorDisplaysSourceCode: v });
+  },
+  colorPickerColors: (() => {
+    try {
+      const stored = localStorage.getItem("colorPickerColors");
+
+      // 只有当 stored 存在且能成功解析为数组时才使用存储的值
+      if (stored) {
+        const parsed = JSON.parse(stored);
+
+        if (Array.isArray(parsed) && parsed.length > 1) {
+          return parsed;
+        }
+      }
+    } catch {
+      // 解析失败，使用默认颜色
+    }
+
+    return [
+      "#FF6B6B",
+      "#F86624",
+      "#FB5607",
+      "#EF476F",
+      "#FF2E9D",
+      "#FFD166",
+      "#F9C80E",
+      "#FFBE0B",
+      "#06D6A0",
+      "#4ECDC4",
+      "#45B7D1",
+      "#118AB2",
+      "#3A86FF",
+      "#9B5DE5",
+      "#8338EC",
+    ];
+  })(),
+
+  addColorPickerColor: (color: string) => {
+    const currentColors = get().colorPickerColors;
+
+    color = color.toUpperCase();
+
+    // 如果颜色已存在，先移除旧的位置，然后添加到最前面
+    const filteredColors = currentColors.filter((c) => c !== color);
+    const newColors = [color, ...filteredColors].slice(0, 20);
+
+    localStorage.setItem("colorPickerColors", JSON.stringify(newColors));
+    set({ colorPickerColors: newColors });
+  },
+  colorPickerGradients: (() => {
+    try {
+      const stored = localStorage.getItem("colorPickerGradients");
+
+      // 只有当 stored 存在且能成功解析为数组时才使用存储的值
+      if (stored) {
+        const parsed = JSON.parse(stored);
+
+        if (Array.isArray(parsed) && parsed.length > 1) {
+          return parsed;
+        }
+      }
+    } catch {
+      // 解析失败，使用默认颜色
+    }
+
+    return [
+      "linear-gradient(90deg, #ffcd1a 0%, #ff2e9d 100%)",
+      "linear-gradient(90deg, #ff9a9e 0%, #fad0c4 16.6%, #f6e58d 33.3%, #b8e994 50%, #82ccdd 66.6%, #a29bfe 83.3%, #d291bc 100%)",
+      // "linear-gradient(90deg, #d32f2f 0%, #ffa000 25%, #388e3c 50%, #1976d2 75%, #7b1fa2 100%)",
+      "linear-gradient(90deg, #e74c3c 0%, #e67e22 20%, #f1c40f 40%, #2ecc71 60%, #3498db 80%, #8e44ad 100%)",
+      "linear-gradient(90deg, #ff2a6d 0%, #d42cff 50%, #22a7f0 100%)",
+      "linear-gradient(90deg, #3498db 0%, #1abc9c 50%, #2ecc71 100%)",
+      "linear-gradient(90deg, #a29bfe 0%, #b94de7 50%, #452ac2 100%)",
+      "linear-gradient(90deg, #2980b9 0%, #6dd5fa 100%)",
+      "linear-gradient(90deg, #fdc830 0%, #f37335 100%)",
+      "linear-gradient(90deg, #56ab2f 0%, #a8e063 100%)",
+      "linear-gradient(90deg, #43e97b 0%, #38f9d7 100%)",
+    ];
+  })(),
+  addColorPickerGradient: (gradient: string) => {
+    const currentGradients = get().colorPickerGradients;
+
+    gradient = gradient.toLowerCase();
+
+    // 如果颜色已存在，先移除旧的位置，然后添加到最前面
+    const filteredGradients = currentGradients.filter((g) => g !== gradient);
+    const newGradients = [gradient, ...filteredGradients].slice(0, 20);
+
+    localStorage.setItem("colorPickerGradients", JSON.stringify(newGradients));
+    set({ colorPickerGradients: newGradients });
   },
 }));

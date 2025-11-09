@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { Language } from "@/components/utils.tsx";
+import { Language } from "@/utils/utils.tsx";
 
 const Flag: Partial<
   Record<

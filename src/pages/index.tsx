@@ -5,7 +5,7 @@ import { DropFolder } from "@/components/drop-folder.tsx";
 import logger from "@/components/logger.tsx";
 import { siteConfig } from "@/config/site.ts";
 import { CodeFolderIcon, RefreshIcon } from "@/components/icons.tsx";
-import { useWorkspaceStore } from "@/components/store.tsx";
+import { useWorkspaceStore, WorkspaceRecord } from "@/components/store.tsx";
 
 export default function IndexPage() {
   const {
@@ -22,6 +22,7 @@ export default function IndexPage() {
 
   useEffect(() => {
     loadHistories();
+    logger.info("currentWorkspace", currentWorkspace);
   }, []);
 
   useEffect(() => {
@@ -77,12 +78,12 @@ export default function IndexPage() {
     dirHandle: FileSystemDirectoryHandle,
     path = dirHandle.name,
   ): Promise<{
-    dialogFolderPath?: string;
+    dialogsFolderPath?: string;
     dialogsFolder?: FileSystemDirectoryHandle;
     assessFolderPath?: string;
     assessFolder?: FileSystemDirectoryHandle;
   }> => {
-    let dialogFolderPath = undefined;
+    let dialogsFolderPath = undefined;
     let dialogsFolder = undefined;
     let assessFolderPath = undefined;
     let assessFolder = undefined;
@@ -92,9 +93,9 @@ export default function IndexPage() {
         const fullPath = `${path}/${name}`;
 
         if (fullPath.endsWith("/data/dialog/dialogs")) {
-          dialogFolderPath = fullPath;
+          dialogsFolderPath = fullPath;
           dialogsFolder = entry;
-          logger.info("Dialogs folder found:", dialogFolderPath);
+          logger.info("Dialogs folder found:", dialogsFolderPath);
         } else if (fullPath.endsWith("/assets/dialog")) {
           assessFolderPath = fullPath;
           assessFolder = entry;
@@ -102,7 +103,7 @@ export default function IndexPage() {
         }
         // 递归处理子目录
         const {
-          dialogFolderPath: subDialogPath,
+          dialogsFolderPath: subDialogPath,
           dialogsFolder: subDialogsFolder,
           assessFolderPath: subAssessPath,
           assessFolder: subAssessFolder,
@@ -110,7 +111,7 @@ export default function IndexPage() {
 
         // 合并结果
         if (subDialogPath) {
-          dialogFolderPath = subDialogPath;
+          dialogsFolderPath = subDialogPath;
           dialogsFolder = subDialogsFolder;
         }
         if (subAssessPath) {
@@ -120,7 +121,7 @@ export default function IndexPage() {
       }
     }
 
-    return { dialogFolderPath, dialogsFolder, assessFolderPath, assessFolder };
+    return { dialogsFolderPath, dialogsFolder, assessFolderPath, assessFolder };
   };
 
   const selectFolder = async (folder: FileSystemDirectoryHandle | null) => {
@@ -130,36 +131,34 @@ export default function IndexPage() {
     // 开始遍历根目录
     try {
       const {
-        dialogFolderPath,
+        dialogsFolderPath,
         dialogsFolder,
         assessFolderPath,
         assessFolder,
       } = await traverseDirectory(folder);
 
-      logger.info("selectFolder", dialogFolderPath, dialogsFolder);
+      logger.info("selectFolder", dialogsFolderPath, dialogsFolder);
       // 如果找到了对话文件夹，创建工作区记录
-      if (dialogFolderPath && dialogsFolder) {
-        const workspaceRecord = {
+      if (dialogsFolderPath && dialogsFolder) {
+        const workspaceRecord: WorkspaceRecord = {
           folderName: folder.name,
           folderHandle: folder,
-          dialogFolderPath,
+          dialogsFolderPath,
           dialogsFolder,
           assessFolderPath,
           assessFolder,
           tabs: [],
+          lastAccessed: Date.now(),
         };
 
         // 添加工作区记录
         await addWorkspace(workspaceRecord);
 
         // 设置为当前工作区
-        setCurrentWorkspace({
-          ...workspaceRecord,
-          lastAccessed: Date.now(),
-        });
+        setCurrentWorkspace(workspaceRecord);
 
         // 设置文件夹状态
-        await setDialogsFolder(dialogsFolder, dialogFolderPath);
+        await setDialogsFolder(dialogsFolder, dialogsFolderPath);
         if (assessFolder && assessFolderPath) {
           await setAssessFolder(assessFolder, assessFolderPath);
         }

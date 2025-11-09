@@ -24,7 +24,7 @@ import {
   RefreshIcon,
   TrashIcon,
 } from "@/components/icons.tsx";
-import { Color } from "@/components/mc-color.tsx";
+import { Color } from "@/utils/mc-style.tsx";
 import {
   useDialogStore,
   useSessionStore,

@@ -1,4 +1,5 @@
 *****
+
 # TraceDialog 对话编辑器
 ![Editor Status](https://img.shields.io/badge/Status-Developing-yellow)
 ![License](https://img.shields.io/badge/License-MIT-blue)
@@ -12,7 +13,10 @@
 
 尚在开发中
 
+> 第一次使用 HeroUI 的脚手架开发，没能理解目录结构，导致大部分逻辑都写在了 components 目录下，后续会进行优化。
+
 ---
+
 ## 📜 许可证/License
 [MIT License](LICENSE)
 

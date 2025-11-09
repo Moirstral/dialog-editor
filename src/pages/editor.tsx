@@ -41,7 +41,7 @@ import {
   MinecraftLanguageCode,
   writeDialogFile,
   writeLanguageFile,
-} from "@/components/utils.tsx";
+} from "@/utils/utils.tsx";
 import { FlagIcon } from "@/components/flag.tsx";
 
 // 注册 React 节点扩展

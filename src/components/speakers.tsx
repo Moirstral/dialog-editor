@@ -2,8 +2,8 @@ import { Button, Chip, Divider } from "@heroui/react";
 import { useState } from "react";
 
 import { PlusIcon, UserIcon } from "@/components/icons.tsx";
-import { Speaker } from "@/components/dialog-sequences.tsx";
-import { Color } from "@/components/mc-color.tsx";
+import { getText, Speaker } from "@/components/dialog-sequences.tsx";
+import { Color } from "@/utils/mc-style.tsx";
 import { HorizontalScrollbars } from "@/components/scrollbars.tsx";
 
 export const InitSpeakers = () => {
