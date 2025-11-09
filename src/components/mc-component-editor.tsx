@@ -731,6 +731,10 @@ export interface MCComponentEditorProps
 
 const MCComponentEditor = forwardRef<"div", MCComponentEditorProps>(
   ({ style, minRows = 1, maxRows = 20, ...otherProps }, ref) => {
+    // §c, §l, §#ffffff 等格式代码的正则表达式
+    const regex = /§([0-9a-fk-or]|#([0-9a-fA-F]{6}))/g;
+    const defaultValue = otherProps.defaultValue?.replace(regex, "§$1\u200B");
+    const [value, setValue] = useState(defaultValue);
     const {
       Component,
       label,
@@ -756,10 +760,10 @@ const MCComponentEditor = forwardRef<"div", MCComponentEditorProps>(
       ...otherProps,
       ref,
       isMultiline: true,
+      isInvalid:
+        otherProps.isInvalid || (otherProps.isRequired && value === ""),
+      errorMessage: otherProps.errorMessage || "请填写此字段。",
     });
-    // §c, §l, §#ffffff 等格式代码的正则表达式
-    const regex = /§([0-9a-fk-or]|#([0-9a-fA-F]{6}))/g;
-    const defaultValue = otherProps.defaultValue?.replace(regex, "§$1\u200B");
     const decorate = useCallback(
       (([node, path]: [Node, number[]]) => {
         const ranges: Range[] = [];
@@ -873,8 +877,6 @@ const MCComponentEditor = forwardRef<"div", MCComponentEditorProps>(
         } catch {}
       }
     }, [editorRef.current]);
-
-    const [value, setValue] = useState(otherProps.defaultValue);
 
     editor.focus = () => {
       ReactEditor.focus(editor);
