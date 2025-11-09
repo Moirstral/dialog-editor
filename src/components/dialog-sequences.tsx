@@ -73,6 +73,11 @@ export interface Component {
   text?: string;
   translate?: string;
   color?: string;
+  bold?: boolean;
+  italic?: boolean;
+  underlined?: boolean;
+  strikethrough?: boolean;
+  obfuscated?: boolean;
 }
 export function getText(
   component?: Component | Component[] | string,
@@ -258,6 +263,7 @@ export interface Speaker {
   name: string;
   value: Component;
   portrait?: Portrait;
+  sort?: number;
 }
 
 const ListboxWrapper = ({

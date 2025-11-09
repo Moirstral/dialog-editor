@@ -14,6 +14,11 @@ export const siteConfig = {
     { name: "Vite", desc: "开发构建工具", url: "https://vitejs.dev" },
     { name: "React", desc: "JavaScript 库", url: "https://reactjs.org" },
     {
+      name: "Slate",
+      desc: "完全可定制的富文本编辑器框架",
+      url: "https://github.com/ianstormtaylor/slate",
+    },
+    {
       name: "HeroUI",
       desc: "美观的 React UI 库",
       url: "https://www.heroui.com",
@@ -28,6 +33,11 @@ export const siteConfig = {
       name: "TypeScript",
       desc: "JavaScript 超集",
       url: "https://www.typescriptlang.org",
+    },
+    {
+      name: "ColorPicker",
+      desc: "React Best Gradient Color Picker",
+      url: "https://www.npmjs.com/package/react-best-gradient-color-picker",
     },
     { name: "TailwindCSS", desc: "CSS 框架", url: "https://tailwindcss.com" },
     { name: "Moirstral", desc: "作者", url: "https://github.com/Moirstral" },
